@@ -1,0 +1,327 @@
+/* ============================================================
+   Bodega — Kasir
+   Halaman untuk staf mencatat pesanan walk-in. Tanpa foto, tanpa
+   halaman pembayaran: yang keluar adalah tiket dan satu baris di
+   sheet yang sama dengan pesanan web.
+   ============================================================ */
+
+:root{
+  --white:#FFFFFF;
+  --ink:#0D0D0D;
+  --ink-soft:#5C5C5C;
+  --line:#E7E5E1;
+  --line-strong:#CFCBC4;
+  --accent:#14777C;
+  --red:#C4362F;
+  --tint:#F6F5F3;
+  --radius:12px;
+  --display:'Bodega Display', ui-sans-serif, system-ui, sans-serif;
+  --mono:'Bodega Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --bar:86px;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--white);color:var(--ink);font-family:var(--mono);
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  padding-bottom:calc(var(--bar) + env(safe-area-inset-bottom));
+}
+button{font:inherit;cursor:pointer}
+.hidden{display:none !important}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+
+/* ---------- kepala ---------- */
+header.kasir{
+  position:sticky;top:0;z-index:30;background:var(--white);
+  border-bottom:1px solid var(--line);padding:12px 0 0;
+}
+.kasir-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.kasir-title{font-family:var(--display);font-size:26px;font-weight:400;margin:0}
+.kasir-meta{font-size:12px;color:var(--ink-soft);text-align:right;line-height:1.35}
+.kasir-meta b{color:var(--ink);font-weight:700}
+
+.tipe{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0}
+.tipe button{
+  border:1px solid var(--line-strong);background:var(--white);border-radius:9px;
+  min-height:48px;font-size:15px;font-weight:700;
+}
+.tipe button[aria-pressed="true"]{background:var(--ink);color:var(--white);border-color:var(--ink)}
+
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{
+  border:1px solid var(--line-strong);background:var(--white);border-radius:999px;
+  padding:8px 14px;font-size:13px;white-space:nowrap;
+}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--white);border-color:var(--ink)}
+
+/* ---------- daftar item ---------- */
+.baris{
+  display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;
+  border-bottom:1px solid var(--line);padding:14px 0;
+}
+.baris-nama{font-size:15px;line-height:1.35}
+.baris-harga{font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.baris-aksi{display:flex;align-items:center;gap:8px}
+.lnk{
+  border:0;background:none;padding:0;font-size:12px;color:var(--ink-soft);
+  text-decoration:underline;min-height:32px;
+}
+
+.stp{
+  display:flex;align-items:center;gap:2px;border:1px solid var(--line-strong);
+  border-radius:999px;background:var(--white);padding:3px;
+}
+.stp button{
+  width:44px;height:44px;border:0;background:none;font-size:20px;line-height:1;
+  display:flex;align-items:center;justify-content:center;border-radius:50%;
+}
+.stp button:active{transform:scale(.95)}
+.stp span{min-width:26px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.stp.zero button[data-minus]{opacity:.25;pointer-events:none}
+
+/* ---------- bilah bawah ---------- */
+.bar-kasir{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--white);
+  border-top:1px solid var(--line-strong);
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  box-shadow:0 -8px 24px rgba(0,0,0,.07);
+}
+.bar-kasir .wrap{padding:0}
+.bar-inner{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bar-total{font-size:12px;color:var(--ink-soft)}
+.bar-total b{display:block;font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
+
+.btn{
+  border:1px solid var(--ink);background:var(--white);border-radius:10px;
+  min-height:52px;padding:0 20px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;font-size:13px;
+}
+.btn.primary{background:var(--ink);color:var(--white)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.4}
+.btn.wide{width:100%}
+
+/* ---------- panel tiket ---------- */
+.panel{
+  position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;
+  background:rgba(13,13,13,.42);
+}
+.panel[hidden]{display:none}
+.panel .lembar{
+  width:100%;max-height:92vh;overflow:auto;background:var(--white);
+  border-radius:16px 16px 0 0;
+  /* bawah tanpa padding: bilah aksi yang menempel harus rapat ke tepi sheet,
+     kalau tidak isi formulir mengintip di bawahnya */
+  padding:18px 16px 0;
+}
+@media(min-width:640px){
+  .panel{align-items:center;justify-content:center}
+  .panel .lembar{max-width:560px;border-radius:16px;max-height:88vh}
+}
+.lembar h2{font-family:var(--display);font-size:22px;font-weight:400;margin:0 0 4px}
+.lembar .sub{font-size:13px;color:var(--ink-soft);margin:0 0 14px}
+
+.baris-tiket{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.baris-tiket .n{font-size:14px}
+.baris-tiket .t{font-size:14px;font-variant-numeric:tabular-nums;text-align:right}
+.baris-tiket .opsi{grid-column:1/-1;font-size:12px;color:var(--ink-soft)}
+.total-baris{display:flex;justify-content:space-between;padding:12px 0;font-weight:700;font-size:16px}
+.total-baris.kecil{font-weight:400;font-size:13px;color:var(--ink-soft);padding:6px 0}
+
+.field{margin:14px 0 0}
+.field label{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;margin-bottom:6px;font-weight:700}
+.field input,.field select,.field textarea{
+  width:100%;padding:12px 14px;font-family:var(--mono);font-size:15px;
+  border:1px solid var(--line-strong);border-radius:9px;background:var(--white);
+}
+.field .hint{font-size:12px;color:var(--ink-soft);margin-top:6px}
+.kunci{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.kunci button{
+  min-height:48px;border:1px solid var(--line-strong);border-radius:9px;background:var(--white);font-size:14px;
+}
+.kunci button[aria-pressed="true"]{background:var(--ink);color:var(--white);border-color:var(--ink)}
+
+/* ---------- topping ---------- */
+/* Satu kolom di ponsel: nama topping panjang tidak terpotong dan harga
+   selalu rata kanan. Dua/tiga kolom hanya kalau layarnya cukup lebar. */
+.top-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+@media(min-width:560px){.top-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:820px){.top-grid{grid-template-columns:1fr 1fr 1fr}}
+
+.top-grid label{
+  display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:12px;
+  border:1px solid var(--line-strong);border-radius:10px;background:var(--white);
+  padding:0 14px;min-height:56px;font-size:15px;line-height:1.25;
+}
+.top-grid label::before{
+  content:"";grid-column:1;width:22px;height:22px;border-radius:6px;
+  border:1.5px solid var(--line-strong);background:var(--white);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--white);line-height:1;
+}
+.top-grid input{position:absolute;opacity:0;pointer-events:none}
+.top-grid span{grid-column:2;min-width:0;overflow-wrap:anywhere}
+.top-grid small{
+  grid-column:3;color:var(--ink-soft);font-size:12px;
+  font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;
+}
+.top-grid label:has(input:checked){border-color:var(--ink);background:var(--tint)}
+.top-grid label:has(input:checked)::before{content:"✓";background:var(--ink);border-color:var(--ink)}
+.top-grid label:has(input:checked) small{color:var(--ink)}
+.top-grid label:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:2px}
+
+/* ---------- tiket selesai ---------- */
+.selesai{text-align:center;padding:26px 0 8px}
+.selesai .nomor{
+  font-family:var(--display);font-size:76px;line-height:1;margin:8px 0 4px;
+}
+.selesai .ket{font-size:13px;color:var(--ink-soft);margin:0 0 18px}
+.pill{
+  display:inline-block;border:1px solid var(--red);color:var(--red);border-radius:4px;
+  padding:5px 9px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+}
+.pill.ok{border-color:var(--accent);color:var(--accent)}
+
+/* target sentuh */
+@media(pointer:coarse){
+  .baris, .tabs button, .tipe button, .btn, .kunci button{min-height:44px}
+}
+
+/* ---------- cari ---------- */
+
+.cari-wrap{margin:10px 0 8px;position:relative}
+.cari-wrap input{
+  width:100%;padding:12px 14px 12px 40px;font-family:var(--mono);font-size:15px;
+  border:1px solid var(--line-strong);border-radius:10px;background:var(--white);
+  -webkit-appearance:none;appearance:none;
+}
+.cari-wrap::before{
+  content:"⌕";position:absolute;left:14px;top:50%;transform:translateY(-52%);
+  font-size:19px;color:var(--ink-soft);pointer-events:none;
+}
+
+/* ---------- pegangan geser di panel ---------- */
+
+.grip{
+  height:26px;display:flex;align-items:center;justify-content:center;margin:-6px 0 8px;
+}
+.grip::before{
+  content:"";width:44px;height:5px;border-radius:99px;background:var(--line-strong);
+}
+
+/* panel bisa digeser: hanya properti transform yang berubah */
+#panel-isi{will-change:transform}
+
+/* ---------- input WhatsApp dengan prefiks ---------- */
+
+.wa-wrap{
+  display:flex;align-items:center;border:1px solid var(--line-strong);
+  border-radius:9px;background:var(--white);overflow:hidden;
+}
+.wa-cc{
+  padding:12px 12px 12px 14px;color:var(--ink-soft);font-size:15px;
+  border-right:1px solid var(--line);
+}
+.wa-wrap input{
+  border:0;border-radius:0;flex:1;min-width:0;
+}
+.wa-wrap:focus-within{outline:2px solid var(--ink);outline-offset:1px}
+
+/* aksi selalu di jangkauan ibu jari, tidak perlu menggulir daftar topping */
+.lembar-aksi{
+  position:sticky;bottom:0;margin-top:16px;
+  padding:12px 0 calc(14px + env(safe-area-inset-bottom));
+  background:var(--white);border-top:1px solid var(--line);
+  box-shadow:0 -10px 24px rgba(0,0,0,.06);
+}
+
+.err{color:var(--red);font-size:12px;margin-top:8px;display:none;line-height:1.5}
+.field.bad .tipe button{border-color:var(--red)}
+.field.bad .err{display:block}
+
+.wajib{
+  font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;
+  color:var(--ink-soft);margin-left:2px;
+}
+.field.bad input,.field.bad select{border-color:var(--red)}
+
+/* ring fokus seragam; tanpa ini Chrome Android memakai ring kuning bawaan */
+.field input:focus-visible,.field select:focus-visible,.cari-wrap input:focus-visible{
+  outline:2px solid var(--ink);outline-offset:1px;
+}
+.field.bad input:focus-visible{outline-color:var(--red)}
+
+/* ---------- tombol + daftar pesanan hari ini ---------- */
+
+.hari-btn{
+  margin-top:10px;display:inline-flex;align-items:center;gap:6px;
+  border:1px solid var(--line-strong);background:var(--white);color:var(--ink);
+  border-radius:99px;padding:9px 14px;font-family:var(--mono);font-size:12px;
+  letter-spacing:.06em;text-transform:uppercase;min-height:44px;
+}
+.hari-btn b{font-variant-numeric:tabular-nums}
+.hari-btn:active{transform:scale(.96)}
+
+/* halaman daftar hari ini menggantikan halaman kasir, bukan menutupinya —
+   tidak ada lapisan di atas menu, jadi tidak ada gulir yang bocor ke belakang */
+body.lihat-hari header.kasir,
+body.lihat-hari main#daftar,
+body.lihat-hari .bar-kasir{display:none}
+
+#view-hari{min-height:100vh;background:var(--white);padding-bottom:40px}
+
+.hari-head{
+  position:sticky;top:0;z-index:5;background:var(--white);
+  border-bottom:1px solid var(--line);padding:12px 0 10px;
+}
+.hari-back{
+  border:0;background:none;padding:8px 0;min-height:44px;
+  font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.hari-head h1{
+  font-family:var(--display);font-size:26px;font-weight:400;margin:2px 0 2px;
+  letter-spacing:.01em;
+}
+.hari-head p{
+  font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin:0;
+  font-variant-numeric:tabular-nums;
+}
+
+.h-order{padding:16px 0;border-bottom:1px solid var(--line)}
+.h-order.belum{background:var(--tint);margin:0 -16px;padding:16px}
+
+.h-top{display:flex;align-items:baseline;gap:10px}
+.h-num{font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.h-jam{font-family:var(--mono);font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.h-total{
+  margin-left:auto;font-family:var(--mono);font-size:15px;
+  font-variant-numeric:tabular-nums;
+}
+
+.h-judul{margin-top:5px;font-size:15px;overflow-wrap:anywhere}
+
+.h-meta{
+  display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:7px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.h-meta b{color:var(--ink);letter-spacing:0;text-transform:none;font-size:11px}
+.h-belum{color:var(--red);font-weight:700}
+.h-tanpa{color:var(--red)}
+
+.h-items{list-style:none;margin:10px 0 0;padding:0}
+.h-items li{
+  display:flex;gap:12px;justify-content:space-between;align-items:baseline;
+  padding:7px 0;font-size:13px;color:var(--ink-soft);
+  border-top:1px dashed var(--line);
+}
+.h-items li span{min-width:0;overflow-wrap:anywhere}
+.h-items li b{
+  font-family:var(--mono);font-size:12px;color:var(--ink);
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+
+.h-items li.h-kemasan{color:var(--ink-soft);font-style:italic}

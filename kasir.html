@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kasir — Bodega Pizzeria</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" sizes="32x32" href="icon-32.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="fonts.css?v=20261117204421">
+<link rel="stylesheet" href="kasir.css?v=20261117204421">
+</head>
+<body>
+
+<header class="kasir">
+  <div class="wrap">
+    <div class="kasir-top">
+      <h1 class="kasir-title">Kasir</h1>
+      <div class="kasir-meta">
+        <div id="jam-sekarang">--:--</div>
+        <div><b id="sisa-antre">0</b> belum terkirim</div>
+      </div>
+      <button type="button" class="hari-btn" id="buka-hari">Hari ini <b id="hari-n">–</b></button>
+    </div>
+
+    <div class="cari-wrap">
+      <input id="cari" type="search" placeholder="Cari menu…" autocomplete="off" aria-label="Cari menu">
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+  </div>
+</header>
+
+<main class="wrap" id="daftar"></main>
+
+<section id="view-hari" hidden>
+  <header class="hari-head">
+    <div class="wrap">
+      <button type="button" class="hari-back" id="hari-kembali">← Kembali</button>
+      <h1>Pesanan hari ini</h1>
+      <p id="hari-ringkas">Memuat…</p>
+    </div>
+  </header>
+  <main class="wrap" id="hari-isi"></main>
+</section>
+
+<div class="bar-kasir">
+  <div class="wrap">
+    <div class="bar-inner">
+      <div class="bar-total">Total <b id="total">Rp0</b></div>
+      <button type="button" class="btn primary" id="buka-tiket" disabled>Lihat pesanan</button>
+    </div>
+  </div>
+</div>
+
+<!-- panel tiket -->
+<div class="panel" id="panel" hidden>
+  <div class="lembar" id="panel-isi" role="dialog" aria-modal="true" aria-labelledby="panel-judul"></div>
+</div>
+
+<script src="menu.js?v=20261117204421"></script>
+<script src="kasir.js?v=20261117204421"></script>
+</body>
+</html>

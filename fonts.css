@@ -1,0 +1,33 @@
+/* ============================================================
+   Bodega Pizzeria — tipografi
+   Font di-host sendiri (tanpa Google Fonts/CDN) supaya cepat dan
+   tidak bergantung pihak ketiga.
+   ============================================================ */
+
+/* Judul: pengganti terdekat "Boldoa Mat" (Bdstrd Std, berbayar).
+   Kalau nanti font aslinya dibeli, cukup ganti berkas ini. */
+@font-face {
+  font-family: 'Bodega Display';
+  src: url('fonts/permanent-marker.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00F1, U+00E9, U+00FC, U+00D7,
+                 U+2013-2014, U+2018-2019, U+201C-201D;
+}
+
+@font-face {
+  font-family: 'Bodega Mono';
+  src: url('fonts/courier-prime-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Bodega Mono';
+  src: url('fonts/courier-prime-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
