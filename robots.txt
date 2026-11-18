@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://khalifaardi.github.io/bodega-order/sitemap.xml
+Sitemap: https://bodega-pizzeria.shop/sitemap.xml
