@@ -129,15 +129,17 @@ const SECTIONS = [
 ];
 
 // Pilihan "tahu Bodega dari mana" — dipakai untuk mengukur asal pelanggan.
+// label  = nilai yang disimpan (kolom `sumber` di sheet + baris "Tahu Bodega dari" di pesan WhatsApp)
+// en     = yang dilihat pelanggan di halaman berbahasa Inggris
 const SUMBER = [
-  { id: "lewat", label: "Jalan lewat / Sanang" },
-  { id: "ig", label: "Instagram" },
-  { id: "tiktok", label: "TikTok" },
-  { id: "threads", label: "Threads" },
-  { id: "gmaps", label: "Google Maps" },
-  { id: "teman", label: "Teman / rekomendasi" },
+  { id: "lewat", label: "Jalan lewat / Sanang", en: "Walked past / Sanang" },
+  { id: "ig", label: "Instagram", en: "Instagram" },
+  { id: "tiktok", label: "TikTok", en: "TikTok" },
+  { id: "threads", label: "Threads", en: "Threads" },
+  { id: "gmaps", label: "Google Maps", en: "Google Maps" },
+  { id: "teman", label: "Teman / rekomendasi", en: "Friend / recommendation" },
   // bebas: pelanggan menulis sendiri; halaman menampilkan kolom teks begitu ini dipilih
-  { id: "lainnya", label: "Lainnya", bebas: true },
+  { id: "lainnya", label: "Lainnya", en: "Other", bebas: true },
 ];
 
 // Ulasan yang tampil di bawah menu. Google diambil dari listing (per 17 Nov 2026);

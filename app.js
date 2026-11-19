@@ -61,10 +61,10 @@ function decrementAny(id) {
 function stepperInner(id, nama) {
   const n = qtyOf(id);
   return (n
-      ? `<button type="button" class="stp" data-dec="${id}" aria-label="Kurangi ${nama}">−</button>
+      ? `<button type="button" class="stp" data-dec="${id}" aria-label="Decrease ${nama}">−</button>
          <span class="n">${n}</span>`
       : "") +
-    `<button type="button" class="stp" data-add="${id}" aria-label="Tambah ${nama} ke pesanan">+</button>`;
+    `<button type="button" class="stp" data-add="${id}" aria-label="Add ${nama} to order">+</button>`;
 }
 
 function stepperHTML(id, nama) {
@@ -85,7 +85,7 @@ function syncSteppers() {
 const cardHTML = it => `
   <div class="card">
     <button type="button" class="card-hit" data-open="${it.id}"
-            aria-label="Lihat detail ${it.nama}, ${rupiah(it.harga)}"></button>
+            aria-label="View ${it.nama}, ${rupiah(it.harga)}"></button>
     <span class="ph${it.img ? "" : " empty"}">
       ${it.img
         ? `<img src="${it.img}" alt="" width="400" height="400" loading="lazy" decoding="async">`
@@ -106,7 +106,7 @@ const rowHTML = it => `
       <span class="price">${rupiah(it.harga)}</span>
     </div>
     ${it.pilih
-      ? `<button type="button" class="pickbtn" data-open="${it.id}" aria-label="Pilih saus untuk ${it.nama}">Pilih</button>`
+      ? `<button type="button" class="pickbtn" data-open="${it.id}" aria-label="Choose sauces for ${it.nama}">Choose</button>`
       : stepperHTML(it.id, it.nama)}
   </article>`;
 
@@ -202,7 +202,7 @@ function syncBar() {
 function paint() {
   const n = cartCount(), total = cartTotal();
   syncBar();
-  $("#bar-count").textContent = `${n} item`;
+  $("#bar-count").textContent = `${n} item${n === 1 ? "" : "s"}`;
   $("#bar-total").textContent = rupiah(total);
   renderCartLines();
   renderSummary();
@@ -224,8 +224,8 @@ function thumb(id, cls) {
 function renderCartLines() {
   const box = $("#cart-lines");
   if (!cart.size) {
-    box.innerHTML = `<div class="empty"><strong>Keranjang masih kosong</strong>
-      Pilih pizza dulu di halaman menu, lalu lanjut ke pengisian data.</div>`;
+    box.innerHTML = `<div class="empty"><strong>Your cart is still empty</strong>
+      Pick a pizza on the menu first, then come back here.</div>`;
     $("#to-form").disabled = true;
     return;
   }
@@ -236,16 +236,16 @@ function renderCartLines() {
       <div class="nm">${lineName(l)}<div class="qty">${l.qty > 1 ? `${l.qty} × ${rupiah(lineUnit(l))}` : rupiah(lineUnit(l))}</div>
         ${(PIZZA_IDS.has(l.id) || (ITEM_MAP.get(l.id) || {}).pilih)
           ? `<button type="button" class="edit-link" data-edit="${key}">${
-              (ITEM_MAP.get(l.id) || {}).pilih ? "Ubah saus" : "Ubah topping"}</button>`
+              (ITEM_MAP.get(l.id) || {}).pilih ? "Edit sauces" : "Edit toppings"}</button>`
           : ""}
         ${l.qty > 1 && (PIZZA_IDS.has(l.id) || (ITEM_MAP.get(l.id) || {}).pilih)
-          ? `<button type="button" class="edit-link" data-editone="${key}">Ubah satu</button>`
+          ? `<button type="button" class="edit-link" data-editone="${key}">Edit one</button>`
           : ""}
       </div>
       <div class="qtyctl">
         <button data-minus="${key}" aria-label="Kurangi ${lineName(l)}">−</button>
         <span>${l.qty}</span>
-        <button data-plus="${key}" aria-label="Tambah ${lineName(l)}">+</button>
+        <button data-plus="${key}" aria-label="Add ${lineName(l)}">+</button>
       </div>
       ${l.qty > 1 ? `<div class="amt">${rupiah(l.qty * lineUnit(l))}</div>` : ""}
     </div>`).join("");
@@ -260,7 +260,7 @@ function renderSummary() {
       <div class="nm">${l.qty} × ${lineName(l)}</div>
       <div class="amt">${angka(l.qty * lineUnit(l))}</div></div>`).join("")
     + (boxAmt > 0
-        ? `<div class="line"><span class="ln-thumb blank" aria-hidden="true"></span><div class="nm">Kemasan (box)</div>
+        ? `<div class="line"><span class="ln-thumb blank" aria-hidden="true"></span><div class="nm">Packaging (box)</div>
              <div class="amt">${angka(boxAmt)}</div></div>`
         : "")
     + `<div class="line total"><div>Total</div><div>${rupiah(grandTotal())}</div></div>`
@@ -314,8 +314,8 @@ function syncCta() {
   const btn = $("#to-form");
   if (!btn) return;
   btn.textContent = state.mode === "reservasi"
-    ? "Kirim reservasi via WhatsApp"
-    : `Bayar QRIS · ${rupiah(grandTotal())}`;
+    ? "Send reservation on WhatsApp"
+    : `Pay by QRIS · ${rupiah(grandTotal())}`;
 }
 
 function setMode(mode) {
@@ -327,8 +327,8 @@ function setMode(mode) {
   renderSummary();
   syncCta();
   $("#pay-note").textContent = mode === "reservasi"
-    ? "WhatsApp terbuka langsung setelah pesanan dibuat. Bayar di tempat saat datang."
-    : "Pembayaran lewat QRIS di halaman berikutnya, termasuk biaya kemasan.";
+    ? "WhatsApp opens right after the order is created. Pay at the table when you arrive."
+    : "Payment is by QRIS on the next screen, packaging included.";
 }
 
 /* ---------------- validation ---------------- */
@@ -367,25 +367,25 @@ function validate() {
   let ok = true;
 
   if (!$("#nama").value.trim() || $("#nama").value.trim().length < 2)
-    ok = invalid("#nama", "Isi nama supaya kami bisa memanggil pesananmu.");
+    ok = invalid("#nama", "Add a name so we can call your order.");
 
   const p = phoneOK("62" + $("#wa").value.replace(/\D/g, ""));
-  if (!p.ok) ok = invalid("#wa", "Nomor belum benar. Contoh: 0812 3456 7890.");
+  if (!p.ok) ok = invalid("#wa", "That number doesn't look right. Example: 0812 3456 7890.");
 
   if (state.mode === "reservasi") {
-    if (!$("#tgl").value) ok = invalid("#tgl", "Pilih tanggal kedatangan.");
-    if (!$("#jam").value) ok = invalid("#jam", "Pilih jam kedatangan.");
+    if (!$("#tgl").value) ok = invalid("#tgl", "Pick an arrival date.");
+    if (!$("#jam").value) ok = invalid("#jam", "Pick an arrival time.");
     const pax = Number($("#pax").value);
-    if (!pax || pax < 1) ok = invalid("#pax", "Isi jumlah orang, minimal 1.");
+    if (!pax || pax < 1) ok = invalid("#pax", "Enter the number of people, at least 1.");
   }
 
   // wajib diisi: ini satu-satunya data atribusi yang kami punya
-  if (!state.sumber) ok = invalid("#sumber", "Pilih satu dulu, ini membantu kami tahu harus promosi di mana.");
+  if (!state.sumber) ok = invalid("#sumber", "Pick one first — it tells us where to promote.");
 
   // "Lainnya" tanpa teks tidak memberi tahu apa pun: minta isinya di langkah yang sama
   const lainEl = $("#sumber-lain");
   if (state.sumber === "Lainnya" && (!lainEl || lainEl.value.trim().length < 2))
-    ok = invalid("#sumber-lain", "Tulis dulu dari mana kamu tahu Bodega.");
+    ok = invalid("#sumber-lain", "Tell us how you found Bodega.");
 
   if (!cart.size) { show("#view-menu"); ok = false; }
   return ok ? { phone: p.norm } : null;
@@ -419,7 +419,7 @@ function buildPickupSlots() {
   wrap.innerHTML = [45, 60, 90, 120].map((m, i) => {
     const t = new Date(Date.now() + m * 60000);
     return `<label><input type="radio" name="pickup" value="${m}"${i === 0 ? " checked" : ""}>` +
-           `<span>${m} menit</span><small>± ${p(t.getHours())}:${p(t.getMinutes())}</small></label>`;
+           `<span>${m} min</span><small>± ${p(t.getHours())}:${p(t.getMinutes())}</small></label>`;
   }).join("");
 }
 const tglID = v => {
@@ -616,7 +616,7 @@ function siapkanUnduhQr(qr, amount, ref) {
     { text: "Bodega Pizzeria", size: Math.round(W * 0.055), weight: 400, color: "#5C5C5C" },
     { text: nominal, size: Math.round(W * 0.105), weight: 700, color: "#0D0D0D" },
     { text: ref, size: Math.round(W * 0.040), weight: 400, color: "#5C5C5C" },
-    { text: "Scan lewat aplikasi bank atau e-wallet", size: Math.round(W * 0.040), weight: 400, color: "#5C5C5C" },
+    { text: "Scan with any bank or e-wallet app", size: Math.round(W * 0.040), weight: 400, color: "#5C5C5C" },
   ];
   baris.forEach(b => { b.size = muat(b.text, b.size, b.weight); b.h = Math.round(b.size * 1.9); });
 
@@ -712,7 +712,7 @@ async function submit(ev) {
   const btn = $("#to-form");
   const label = btn.textContent;
   btn.disabled = true;
-  btn.textContent = "Menyimpan pesanan…";
+  btn.textContent = "Saving order…";
 
   let saved = false;
   try { saved = await saveOrder(data); } catch (e) { saved = false; }
@@ -752,18 +752,18 @@ function renderDone(id, msg, recorded) {
   $("#done-id").textContent = id;
   // jangan mengklaim "tercatat" kalau belum ada tujuan pencatatan
   $("#done-claim").textContent = recorded
-    ? "sudah tercatat di Bodega."
-    : "sudah dibuat.";
+    ? "has been recorded at Bodega."
+    : "has been created.";
   $("#wa-link").href = `https://wa.me/${SHOP.wa}?text=${encodeURIComponent(msg)}`;
 
-  $("#done-title").textContent = isReserve ? "Selesaikan reservasi" : "Selesaikan pembayaran";
+  $("#done-title").textContent = isReserve ? "Complete your reservation" : "Complete your payment";
   $("#done-hint").textContent = isReserve
-    ? "WhatsApp sudah dibuka di tab lain. Kalau tidak terbuka, tekan tombol ini supaya reservasimu tercatat."
-    : "Sudah bayar? Tekan tombol di bawah supaya Bodega mulai menyiapkan pesananmu.";
-  $("#done-pill").textContent = isReserve ? "Belum dikonfirmasi" : "Belum dibayar";
+    ? "WhatsApp already opened in another tab. If it didn't, tap this button so your reservation is recorded."
+    : "Already paid? Tap the button below so Bodega starts on your order.";
+  $("#done-pill").textContent = isReserve ? "Not confirmed yet" : "Not paid yet";
   $("#done-sub").textContent = isReserve
-    ? "WhatsApp sudah dibuka di tab lain — tekan kirim di sana supaya Bodega mencatat reservasimu. Kalau tidak terbuka, pakai tombol di bawah."
-    : "Bayar dengan QRIS di bawah — nominalnya sudah termasuk kemasan.";
+    ? "WhatsApp already opened in another tab — press send there so Bodega records your reservation. If it didn't open, use the button below."
+    : "Pay with the QRIS below — the amount already includes packaging.";
 
   $("#pay-block").classList.toggle("hidden", isReserve);
   $("#reserve-note").classList.toggle("hidden", !isReserve);
@@ -778,7 +778,7 @@ function renderDone(id, msg, recorded) {
       <div class="nm">${l.qty} × ${lineName(l)}</div>
       <div class="amt">${angka(l.qty * lineUnit(l))}</div></div>`).join("")
     + (boxFee() > 0
-        ? `<div class="line"><span class="ln-thumb blank" aria-hidden="true"></span><div class="nm">Kemasan (box)</div>
+        ? `<div class="line"><span class="ln-thumb blank" aria-hidden="true"></span><div class="nm">Packaging (box)</div>
              <div class="amt">${angka(boxFee())}</div></div>`
         : "")
     + `<div class="line total"><div>Total</div><div>${rupiah(grandTotal())}</div></div>`;
@@ -806,12 +806,12 @@ function openChooser(id) {
   const lines = [...cart.entries()].filter(([, l]) => l.id === id);
   chooseId = id;
 
-  $("#c-title").textContent = `${item.nama} sudah ada di pesanan`;
-  $("#c-sub").textContent = "Mau tambah satu lagi dengan topping berbeda, atau ubah yang sudah ada?";
+  $("#c-title").textContent = `${item.nama} is already in your order`;
+  $("#c-sub").textContent = "Add another with different toppings, or edit the one you have?";
   $("#c-cancel").onclick = closeSheet;
   $("#c-list").innerHTML = lines.map(([key, l]) => `
     <button type="button" class="choose-row" data-pick="${key}">
-      <span class="choose-name">${l.tops && l.tops.length ? pickNames(l) : "Tanpa topping"}</span>
+      <span class="choose-name">${l.tops && l.tops.length ? pickNames(l) : "No toppings"}</span>
       <span class="choose-act">Ubah</span>
       <span class="choose-meta">${l.qty} × · ${rupiah(lineUnit(l))}</span>
     </button>`).join("");
@@ -841,7 +841,7 @@ function paintSheetPrice() {
 function sheetOptions() {
   if (!sheetItem) return null;
   if (PIZZA_IDS.has(sheetItem.id) && TOPPINGS.length) {
-    return { list: TOPPINGS, max: 99, min: 0, judul: "Tambah topping", note: "opsional", addPrice: true };
+    return { list: TOPPINGS, max: 99, min: 0, judul: "Add toppings", note: "optional", addPrice: true };
   }
   if (sheetItem.pilih) {
     const sec = SECTIONS.find(s => s.id === sheetItem.dari);
@@ -849,7 +849,7 @@ function sheetOptions() {
       // bundle tidak boleh menawarkan dirinya sendiri (atau bundle lain) sebagai pilihan
       list: (sec ? sec.items : []).filter(i => i.id !== sheetItem.id && !i.pilih),
       max: sheetItem.pilih, min: sheetItem.pilih,
-      judul: `Pilih ${sheetItem.pilih} saus`, note: "wajib", addPrice: false,
+      judul: `Choose ${sheetItem.pilih} sauces`, note: "required", addPrice: false,
     };
   }
   return null;
@@ -870,7 +870,7 @@ function renderSheetTops() {
   wrap.hidden = false;
   wrap.innerHTML = `
     <div class="tops-head">${opt.judul}
-      <span>${opt.min ? `${sheetTops.size}/${opt.min} dipilih` : opt.note}</span>
+      <span>${opt.min ? `${sheetTops.size}/${opt.min} chosen` : opt.note}</span>
     </div>
     <div class="tops">
       ${opt.list.map(t => {
@@ -895,8 +895,8 @@ function syncSheetAdd() {
   const kurang = opt && opt.min ? opt.min - sheetTops.size : 0;
   btn.disabled = kurang > 0;
   btn.textContent = kurang > 0
-    ? `Pilih ${kurang} saus lagi`
-    : (editSplit ? "Simpan 1 pizza" : (editKey ? "Simpan perubahan" : "Tambah ke pesanan"));
+    ? `Choose ${kurang} more sauce${kurang === 1 ? "" : "s"}`
+    : (editSplit ? "Simpan 1 pizza" : (editKey ? "Simpan perubahan" : "Add to order"));
 }
 
 function openItemSheet(id, key, split) {
@@ -963,17 +963,27 @@ function bumpSheet(delta) {
 
 /* ---------------- ulasan ---------------- */
 
+// tanggal ulasan datang relatif dari API ("12 hari lalu"); labelnya ikut bahasa halaman
+function kapanEn(k) {
+  const s = String(k || "").trim();
+  const m = s.match(/^(\d+)\s+(hari|minggu|bulan|tahun)\s+lalu$/i);
+  if (!m) return s;
+  const n = Number(m[1]);
+  const unit = { hari: "day", minggu: "week", bulan: "month", tahun: "year" }[m[2].toLowerCase()];
+  return `${n} ${unit}${n === 1 ? "" : "s"} ago`;
+}
+
 function renderUlasan() {
   const sec = $("#ulasan"), grid = $("#ulasan-grid");
   if (!sec || !grid || typeof ULASAN === "undefined" || !ULASAN.length) return;
 
   grid.innerHTML = ULASAN.map(u => `
     <figure class="quote">
-      <div class="stars" aria-label="${u.bintang} dari 5 bintang">${"★".repeat(u.bintang)}${"☆".repeat(Math.max(0, 5 - u.bintang))}</div>
+      <div class="stars" aria-label="${u.bintang} out of 5 stars">${"★".repeat(u.bintang)}${"☆".repeat(Math.max(0, 5 - u.bintang))}</div>
       <blockquote>${u.teks}</blockquote>
       ${u.terjemahan ? `<p class="terjemahan">${u.terjemahan}</p>` : ""}
-      ${u.pesan ? `<p class="pesan">Pesan: ${u.pesan}</p>` : ""}
-      <figcaption>${u.nama} · ${u.kapan}<span class="src">${u.sumber}</span></figcaption>
+      ${u.pesan ? `<p class="pesan">Ordered: ${u.pesan}</p>` : ""}
+      <figcaption>${u.nama} · ${kapanEn(u.kapan)}<span class="src">${u.sumber}</span></figcaption>
     </figure>`).join("");
 
   // geser horizontal + titik penanda
@@ -981,7 +991,7 @@ function renderUlasan() {
   const cards = [...grid.querySelectorAll(".quote")];
   if (dots && cards.length) {
     dots.innerHTML = cards.map((_, i) =>
-      `<button type="button" data-dot="${i}" aria-label="Ulasan ${i + 1} dari ${cards.length}"></button>`).join("");
+      `<button type="button" data-dot="${i}" aria-label="Review ${i + 1} of ${cards.length}"></button>`).join("");
 
     const langkah = () => {
       const r = cards[0].getBoundingClientRect();
@@ -1018,7 +1028,7 @@ function renderUlasan() {
     // GrabFood disebut sebagai sumber, tapi tidak ditautkan: halaman ini
     // tidak boleh mengarahkan pelanggan keluar ke Grab.
     note.innerHTML = (typeof ULASAN !== "undefined" && ULASAN.length)
-      ? `Dikutip dari ulasan GrabFood dan Google Maps Bodega.${SHOP.maps ? ` <a href="${SHOP.maps}" target="_blank" rel="noopener">Lihat di Google Maps</a>.` : ""}`
+      ? `Quoted from Bodega's GrabFood and Google Maps reviews.${SHOP.maps ? ` <a href="${SHOP.maps}" target="_blank" rel="noopener">See it on Google Maps</a>.` : ""}`
       : "";
   }
   sec.hidden = false;
@@ -1258,11 +1268,15 @@ document.addEventListener("DOMContentLoaded", () => {
     r.addEventListener("change", () => setMode(r.value)));
 
   const selSumber = $("#sumber");
-  selSumber.innerHTML = `<option value="">Pilih salah satu…</option>` +
-    SUMBER.map(s => `<option value="${s.label}">${s.label}</option>`).join("");
-  selSumber.value = state.sumber || "";
+  // opsi tampil berbahasa Inggris; yang disimpan tetap label Indonesia (dipakai di pesan WA + kolom sheet)
+  selSumber.innerHTML = `<option value="">Pick one…</option>` +
+    SUMBER.map(s => `<option value="${s.id}">${s.en || s.label}</option>`).join("");
+  const idTerpilih = () => (SUMBER.some(s => s.id === state.sumber)
+    ? state.sumber
+    : ((SUMBER.find(s => s.label === state.sumber) || {}).id || ""));
+  selSumber.value = idTerpilih();
   selSumber.addEventListener("change", () => {
-    state.sumber = selSumber.value;
+    state.sumber = (SUMBER.find(s => s.id === selSumber.value) || {}).label || "";
     if (selSumber.value) $("#f-sumber").classList.remove("bad");
     toggleSumberLain();
     simpan();
@@ -1298,9 +1312,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const pre = new URLSearchParams(location.search).get("dari");
   if (pre) {
     const match = SUMBER.find(s => s.id === pre.toLowerCase()) ||
+                  SUMBER.find(s => (s.en || "").toLowerCase().includes(pre.toLowerCase())) ||
                   SUMBER.find(s => s.label.toLowerCase().includes(pre.toLowerCase()));
     if (match) {
-      selSumber.value = match.label;
+      selSumber.value = match.id;
       state.sumber = match.label;
       toggleSumberLain();
       simpan();
@@ -1315,16 +1330,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // skor Google Maps + tautan ke lokasi
   const rate = $("#shop-rate");
   if (rate) {
-    const skor = v => Number(v).toFixed(1).replace(".", ",");
+    const skor = v => Number(v).toFixed(1);
     const baris = [];
     if (SHOP.maps && SHOP.rating) {
       baris.push(`<a href="${SHOP.maps}" target="_blank" rel="noopener">
-        <span class="star" aria-hidden="true">★</span> ${skor(SHOP.rating)}${SHOP.ulasan ? ` · ${SHOP.ulasan} ulasan` : ""} di Google Maps</a>`);
+        <span class="star" aria-hidden="true">★</span> ${skor(SHOP.rating)}${SHOP.ulasan ? ` · ${SHOP.ulasan} review${SHOP.ulasan === 1 ? "" : "s"}` : ""} on Google Maps</a>`);
     }
     if (SHOP.grab && SHOP.grabRating) {
       // sengaja bukan tautan: jangan arahkan pelanggan ke Grab dari halaman ini
       baris.push(`<span class="rate-plain">
-        <span class="star" aria-hidden="true">★</span> ${skor(SHOP.grabRating)}${SHOP.grabUlasan ? ` · ${SHOP.grabUlasan} ulasan` : ""} di GrabFood</span>`);
+        <span class="star" aria-hidden="true">★</span> ${skor(SHOP.grabRating)}${SHOP.grabUlasan ? ` · ${SHOP.grabUlasan} review${SHOP.grabUlasan === 1 ? "" : "s"}` : ""} on GrabFood</span>`);
     }
     rate.innerHTML = baris.join("");
   }

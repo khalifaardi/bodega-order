@@ -130,7 +130,7 @@ window.QRIS = (function () {
       canvas.style.height = "auto";
       canvas.style.borderRadius = "10px";
       canvas.setAttribute("role", "img");
-      canvas.setAttribute("aria-label", "Kode QRIS untuk nominal pesanan");
+      canvas.setAttribute("aria-label", "QRIS code for the order amount");
 
       const ctx = canvas.getContext("2d");
       ctx.fillStyle = "#FFFFFF";

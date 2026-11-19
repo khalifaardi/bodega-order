@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bayar pesanan — Bodega Pizzeria</title>
+<title>Pay for your order — Bodega Pizzeria</title>
 <meta name="theme-color" content="#FBF8F3">
 <link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="fonts.css?v=20261119124609">
@@ -21,7 +21,7 @@
 <body>
 
 <div class="pay-wrap">
-  <h1 style="font-size:22px;text-transform:uppercase;letter-spacing:.02em;margin:28px 0 4px">Bayar pesanan</h1>
+  <h1 style="font-size:22px;text-transform:uppercase;letter-spacing:.02em;margin:28px 0 4px">Pay for your order</h1>
   <p style="color:var(--ink-soft);font-size:14px;margin:0">Bodega Pizzeria · Sanang Space</p>
 
   <div class="pay-card">
@@ -29,21 +29,21 @@
     <div class="amt" id="amt">—</div>
     <div id="qris-slot"></div>
     <div id="missing" style="display:none" style="font-size:14px;color:var(--ink-soft);background:#FDF6EC;border:1px dashed var(--line);border-radius:10px;padding:16px;text-align:left">
-      Gambar QRIS belum diunggah. Minta kode pembayaran lewat WhatsApp — pesananmu tetap kami siapkan.
+      The QRIS image isn't uploaded yet. Ask for the payment code on WhatsApp — we'll still get your order ready.
     </div>
 
     <ol class="steps" id="steps">
-      <li>Buka aplikasi bank atau e-wallet apa pun yang punya QRIS.</li>
-      <li>Scan kode di atas, lalu masukkan nominal sesuai pesanan.</li>
-      <li>Kirim bukti pembayaran di chat WhatsApp yang sama.</li>
+      <li>Open any bank or e-wallet app that supports QRIS.</li>
+      <li>Scan the code above, then enter the amount for your order.</li>
+      <li>Send the payment proof in the same WhatsApp chat.</li>
     </ol>
   </div>
 
   <a id="wa" class="btn primary" style="margin-top:16px" target="_blank" rel="noopener"
-     href="https://wa.me/6287784456676">Kirim bukti di WhatsApp</a>
+     href="https://wa.me/6287784456676">Send proof on WhatsApp</a>
 
   <p style="font-size:12.5px;color:var(--ink-soft);margin-top:22px;text-align:center">
-    Pesanan disiapkan setelah pembayaran dikonfirmasi.
+    Orders are prepared once payment is confirmed.
   </p>
 </div>
 
@@ -58,16 +58,16 @@
   const amt = Number(q.get("amt") || saved.total || 0);
   const id  = q.get("id") || saved.id || "";
 
-  document.getElementById("oid").textContent = id ? "No. pesanan " + id : "";
+  document.getElementById("oid").textContent = id ? "Order no. " + id : "";
   document.getElementById("amt").textContent = amt
-    ? "Rp" + amt.toLocaleString("id-ID") : "Nominal dikonfirmasi via WhatsApp";
+    ? "Rp" + amt.toLocaleString("id-ID") : "Amount confirmed on WhatsApp";
 
   const missing = message => {
     document.getElementById("missing").style.display = "block";
     document.getElementById("steps").innerHTML =
-      "<li>Minta kode QRIS di chat WhatsApp — dibalas dalam beberapa menit.</li>" +
-      "<li>Scan kodenya, masukkan nominal di atas.</li>" +
-      "<li>Kirim bukti pembayaran di chat yang sama.</li>";
+      "<li>Ask for the QRIS code in the WhatsApp chat — usually answered within minutes.</li>" +
+      "<li>Scan the code, then enter the amount above.</li>" +
+      "<li>Send the payment proof in the same chat.</li>";
     if (message) document.getElementById("missing").textContent = message;
   };
 
@@ -80,15 +80,15 @@
       const opts = (SHOP.qrisBillRef && id) ? { billRef: id } : null;
       const dyn = QRIS.buildDynamic(payload, amt, opts);
       rendered = QRIS.renderQR(slot, dyn, 340);
-      if (!rendered) console.warn("QRIS dinamis gagal dirender");
+      if (!rendered) console.warn("dynamic QRIS failed to render");
     } catch (e) {
-      console.warn("QRIS dinamis gagal:", e.message);
+      console.warn("dynamic QRIS failed:", e.message);
     }
   }
 
   if (!rendered) {
     const img = document.createElement("img");
-    img.alt = "Kode QRIS Bodega Pizzeria";
+    img.alt = "Bodega Pizzeria QRIS code";
     img.onerror = () => { img.remove(); missing(); };
     img.src = (typeof SHOP !== "undefined" && SHOP.qris) || "qris.png";
     slot.appendChild(img);

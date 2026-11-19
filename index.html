@@ -1,19 +1,19 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pesan Pizza — Bodega Pizzeria, Makassar</title>
-<meta name="description" content="Menu dan pesanan Bodega Pizzeria di Sanang Space, Jl. Opu Daeng Risadju No. 12, Mariso, Makassar. Pesan langsung lewat WhatsApp.">
+<title>Order Pizza — Bodega Pizzeria, Makassar</title>
+<meta name="description" content="Menu and ordering for Bodega Pizzeria at Sanang Space, Jl. Opu Daeng Risadju No. 12, Mariso, Makassar. Order direct over WhatsApp.">
 <meta name="theme-color" content="#FBF8F3">
 
 <!-- kanonik: domain aktif sejak 2026-11-18 -->
 <link rel="canonical" href="https://bodega-pizzeria.shop/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Bodega Pizzeria">
-<meta property="og:locale" content="id_ID">
-<meta property="og:title" content="Pesan Pizza — Bodega Pizzeria, Makassar">
-<meta property="og:description" content="Menu dan pesanan Bodega Pizzeria di Sanang Space, Mariso, Makassar. Pizza 28 cm, dipanggang per pesanan. Pesan langsung, bayar QRIS.">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="Order Pizza — Bodega Pizzeria, Makassar">
+<meta property="og:description" content="Bodega Pizzeria at Sanang Space, Mariso, Makassar. 28 cm pizzas baked to order. Order direct, pay by QRIS.">
 <meta property="og:url" content="https://bodega-pizzeria.shop/">
 <meta property="og:image" content="https://bodega-pizzeria.shop/og-cover.jpg">
 <meta property="og:image:width" content="1200">
@@ -25,14 +25,14 @@
   "@context": "https://schema.org",
   "@type": "Restaurant",
   "name": "Bodega Pizzeria",
-  "description": "Pizza Neapolitan 28 cm dengan adonan fermentasi, dipanggang per pesanan. Berlokasi di Sanang Space, Mariso, Makassar.",
+  "description": "28 cm Neapolitan pizza on fermented dough, baked to order. At Sanang Space, Mariso, Makassar.",
   "url": "https://bodega-pizzeria.shop/",
   "image": "https://bodega-pizzeria.shop/og-cover.jpg",
-  "servesCuisine": ["Pizza", "Italia"],
+  "servesCuisine": ["Pizza", "Italian"],
   "priceRange": "Rp",
   "currenciesAccepted": "IDR",
-  "paymentAccepted": "QRIS, Tunai",
-  "telephone": "+6287784456676",
+  "paymentAccepted": "QRIS, Cash",
+  "telephone": "+628****6676",
   "acceptsReservations": "True",
   "address": {
     "@type": "PostalAddress",
@@ -64,7 +64,7 @@
   <div class="wrap">
     <div class="brand">
       <img class="logo" src="logo.png" alt="Bodega Pizzeria" width="186" height="55">
-      <p class="sub">Pizza adonan fermentasi, dipanggang per pesanan.</p>
+      <p class="sub">Fermented dough, baked to order.</p>
       <p class="addr">Sanang Space · Jl. Opu Daeng Risadju No. 12, Mariso, Makassar<br><span id="shop-hours"></span></p>
       <p class="rate" id="shop-rate"></p>
     </div>
@@ -77,8 +77,8 @@
   <div class="wrap"><div id="menu-root"></div></div>
 <div class="wrap">
 <section class="ulasan" id="ulasan" hidden>
-  <div class="sec-head"><h2>Apa kata mereka</h2><span class="rule"></span></div>
-  <div class="ulasan-grid" id="ulasan-grid" role="region" aria-label="Ulasan pelanggan" tabindex="0"></div>
+  <div class="sec-head"><h2>What people say</h2><span class="rule"></span></div>
+  <div class="ulasan-grid" id="ulasan-grid" role="region" aria-label="Customer reviews" tabindex="0"></div>
   <div class="ulasan-dots" id="ulasan-dots"></div>
   <p class="ulasan-note" id="ulasan-note"></p>
 </section>
@@ -87,57 +87,57 @@
 
 <main id="view-checkout" class="hidden">
   <div class="wrap">
-    <button type="button" id="back-menu" class="btn ghost" style="width:auto;padding:10px 16px;margin-top:22px">← Kembali ke menu</button>
-    <h2 class="view-title">Pesananmu</h2>
-    <p class="view-sub">Cek itemnya, lalu isi data. Pesanan dikirim ke WhatsApp Bodega untuk dikonfirmasi.</p>
+    <button type="button" id="back-menu" class="btn ghost" style="width:auto;padding:10px 16px;margin-top:22px">← Back to menu</button>
+    <h2 class="view-title">Your order</h2>
+    <p class="view-sub">Check the items, then fill in your details. The order goes to Bodega's WhatsApp for confirmation.</p>
 
     <div class="summary" style="margin-bottom:18px">
-      <h3>Item</h3>
+      <h3>Items</h3>
       <div id="cart-lines"></div>
     </div>
 
     <form id="order-form" novalidate>
 
       <div class="field">
-        <label for="nama">Nama</label>
-        <input type="text" id="nama" name="nama" autocomplete="name" placeholder="Nama untuk pesanan">
+        <label for="nama">Name</label>
+        <input type="text" id="nama" name="nama" autocomplete="name" placeholder="Name for the order">
         <div class="err"></div>
       </div>
 
       <div class="field">
-        <label for="wa">Nomor WhatsApp</label>
+        <label for="wa">WhatsApp number</label>
         <div class="wa-wrap">
           <span class="wa-cc" aria-hidden="true">+62</span>
           <input type="tel" id="wa" name="wa" inputmode="numeric" autocomplete="tel" placeholder="812 3456 7890">
         </div>
-        <div class="hint">Dipakai untuk konfirmasi pesanan.</div>
+        <div class="hint">We use it to confirm your order.</div>
         <div class="err"></div>
       </div>
 
       <div class="field">
-        <label>Cara ambil</label>
+        <label>How you'll get it</label>
         <div class="seg">
-          <label><input type="radio" name="mode" value="reservasi" checked><span>Reservasi meja</span><small>Makan di Sanang</small></label>
-          <label><input type="radio" name="mode" value="antar"><span>Kirim kurir sendiri</span><small>GoSend/Grab — Bodega tidak mengantar</small></label>
-          <label><input type="radio" name="mode" value="ambil"><span>Ambil sendiri</span><small>Datang ke kasir</small></label>
+          <label><input type="radio" name="mode" value="reservasi" checked><span>Table reservation</span><small>Eat at Sanang</small></label>
+          <label><input type="radio" name="mode" value="antar"><span>Send your own courier</span><small>GoSend/Grab — Bodega doesn't deliver</small></label>
+          <label><input type="radio" name="mode" value="ambil"><span>Pick it up yourself</span><small>Come to the counter</small></label>
         </div>
       </div>
 
       <div id="blk-reservasi">
         <div class="row two">
           <div class="field">
-            <label for="tgl">Tanggal</label>
+            <label for="tgl">Date</label>
             <input type="date" id="tgl">
             <div class="err"></div>
           </div>
           <div class="field">
-            <label for="jam">Jam</label>
+            <label for="jam">Time</label>
             <input type="time" id="jam" step="900">
             <div class="err"></div>
           </div>
         </div>
         <div class="field">
-          <label for="pax">Jumlah orang</label>
+          <label for="pax">Number of people</label>
           <input type="number" id="pax" min="1" max="60" value="2" inputmode="numeric">
           <div class="err"></div>
         </div>
@@ -145,49 +145,49 @@
 
       <div id="blk-antar" class="hidden">
         <div class="field">
-          <label>Kurir kamu ambil jam berapa?</label>
+          <label>When will your courier collect it?</label>
           <div class="seg" id="pickup-slots"></div>
-          <div class="hint">Pizza dibuat sekitar 30 menit. Kirim kurir ojek atau kurirmu sendiri ke Bodega pada jam yang dipilih — alamat cukup dikirim di chat WhatsApp.</div>
+          <div class="hint">A pizza takes about 30 minutes. Send an ojek or your own courier to Bodega at the time you pick — the address is enough, send it in the WhatsApp chat.</div>
         </div>
       </div>
 
       <div id="blk-ambil" class="hidden">
         <div class="field">
-          <label for="jamAmbil">Perkiraan jam ambil</label>
+          <label for="jamAmbil">Roughly what time will you pick it up?</label>
           <input type="time" id="jamAmbil" step="900">
-          <div class="hint">Kosongkan kalau belum tahu.</div>
+          <div class="hint">Leave it empty if you don't know yet.</div>
         </div>
       </div>
 
       <div class="field">
-        <label for="catatan">Catatan</label>
-        <textarea id="catatan" placeholder="Contoh: tanpa jalapeño, potong 8, saus pisah"></textarea>
+        <label for="catatan">Notes</label>
+        <textarea id="catatan" placeholder="Example: no jalapeño, cut into 8, sauce on the side"></textarea>
       </div>
 
       <div class="field" id="f-sumber">
-        <label for="sumber">Tahu Bodega dari mana?</label>
+        <label for="sumber">How did you hear about Bodega?</label>
         <select id="sumber" required>
-          <option value="">Pilih salah satu…</option>
+          <option value="">Pick one…</option>
         </select>
-        <div class="err" id="sumber-err">Pilih satu dulu, ini membantu kami tahu harus promosi di mana.</div>
+        <div class="err" id="sumber-err">Pick one first — it tells us where to promote.</div>
       </div>
 
       <div class="field hidden" id="f-sumber-lain">
-        <label for="sumber-lain">Dari mana? Tulis sendiri</label>
+        <label for="sumber-lain">Where from? Tell us yourself</label>
         <input id="sumber-lain" type="text" maxlength="60" autocomplete="off"
-               placeholder="Contoh: undangan teman, TikTok kakak, koran kampus">
-        <div class="hint">Sebutkan sesingkat mungkin — ini yang kami pakai untuk tahu harus promosi di mana.</div>
-        <div class="err" id="sumber-lain-err">Tulis dulu dari mana kamu tahu Bodega.</div>
+               placeholder="Example: a friend's invitation, my sister's TikTok, campus paper">
+        <div class="hint">Keep it short — this is what tells us where to promote.</div>
+        <div class="err" id="sumber-lain-err">Tell us how you found Bodega.</div>
       </div>
 
       <div class="summary" style="margin-top:6px">
-        <h3>Ringkasan</h3>
+        <h3>Summary</h3>
         <div id="summary-lines"></div>
       </div>
 
       <p class="view-sub" id="pay-note" style="margin-top:16px"></p>
 
-      <button type="submit" id="to-form" class="btn primary" disabled>Kirim pesanan via WhatsApp</button>
+      <button type="submit" id="to-form" class="btn primary" disabled>Send order on WhatsApp</button>
     </form>
   </div>
 </main>
@@ -195,50 +195,50 @@
 <main id="view-done" class="hidden">
   <div class="wrap">
     <div class="status-pill" id="done-pill"></div>
-    <h2 class="view-title" id="done-title">Selesaikan pembayaran</h2>
-    <p class="view-sub">Pesanan <span class="oid" id="done-id"></span> <span id="done-claim">sudah dibuat.</span>
-      <span id="done-sub">Bayar dengan QRIS di bawah — nominalnya sudah terisi otomatis.</span></p>
+    <h2 class="view-title" id="done-title">Complete your payment</h2>
+    <p class="view-sub">Order <span class="oid" id="done-id"></span> <span id="done-claim">has been created.</span>
+      <span id="done-sub">Pay with the QRIS below — the amount is already filled in.</span></p>
 
     <div id="pay-block" class="pay">
-      <h3>Bayar dengan QRIS</h3>
+      <h3>Pay with QRIS</h3>
       <div class="amt" id="pay-amt"></div>
       <div id="qris-slot"></div>
-      <button type="button" class="btn ghost hidden" id="qris-download" style="margin-top:14px">Simpan kode QR</button>
+      <button type="button" class="btn ghost hidden" id="qris-download" style="margin-top:14px">Save the QR code</button>
       <div class="missing hidden" id="qris-missing">
-        Kode QRIS belum bisa ditampilkan. Minta kode pembayaran lewat WhatsApp — pesananmu tetap kami siapkan.
+        The QRIS code can't be shown right now. Ask for the payment code on WhatsApp — we'll still get your order ready.
       </div>
       <p style="font-size:12.5px;color:var(--ink-soft);margin:14px 0 0">
-        Bisa dari semua bank dan e-wallet. Tidak perlu kirim bukti transfer.
+        Works with any bank or e-wallet. No need to send a transfer receipt.
       </p>
     </div>
 
     <div id="reserve-note" class="pay hidden">
-      <h3>Pembayaran</h3>
-      <p style="margin:6px 0 0;font-size:13px;color:var(--ink-soft)">Bayar di tempat saat datang. Tidak perlu transfer sekarang.</p>
+      <h3>Payment</h3>
+      <p style="margin:6px 0 0;font-size:13px;color:var(--ink-soft)">Pay at the table when you arrive. Nothing to transfer now.</p>
     </div>
 
     <div id="record-note" class="note hidden">
-      Pesanan sudah tersimpan di perangkat ini tapi belum terkirim ke catatan Bodega. Kirim konfirmasi lewat WhatsApp di bawah supaya tidak terlewat.
+      This order is saved on your device but hasn't reached Bodega's records yet. Send the confirmation on WhatsApp below so it isn't missed.
     </div>
 
     <div class="summary" style="margin-top:22px">
-      <h3>Pesanan</h3>
+      <h3>Order</h3>
       <div id="done-summary"></div>
     </div>
   </div>
 
   <div class="done-bar">
-    <p class="done-hint" id="done-hint">Sudah bayar? Tekan tombol di bawah supaya dapur mulai menyiapkan.</p>
-    <a id="wa-link" class="btn primary" target="_blank" rel="noopener">Konfirmasi lewat WhatsApp</a>
+    <p class="done-hint" id="done-hint">Already paid? Tap the button below so the kitchen starts on it.</p>
+    <a id="wa-link" class="btn primary" target="_blank" rel="noopener">Confirm on WhatsApp</a>
   </div>
 </main>
 
 <div class="bar" id="bar">
   <div class="sum">
-    <div class="count" id="bar-count">0 item</div>
+    <div class="count" id="bar-count">0 items</div>
     <div class="total" id="bar-total">Rp0</div>
   </div>
-  <button type="button" id="open-cart">Lanjut</button>
+  <button type="button" id="open-cart">Continue</button>
 </div>
 
 
@@ -246,13 +246,13 @@
 <footer>
   <div class="wrap">
     Bodega Pizzeria · Jl. Opu Daeng Risadju No. 12, Mariso, Makassar
-    <span class="foot-grab">Juga bisa dipesan lewat <a id="grab-footer" href="https://app.grab.com/s/gJAeQXLC" target="_blank" rel="noopener">GrabFood</a></span>
+    <span class="foot-grab">Also on <a id="grab-footer" href="https://app.grab.com/s/gJAeQXLC" target="_blank" rel="noopener">GrabFood</a></span>
   </div>
 </footer>
 
 <noscript>
   <div class="wrap" style="padding:20px 0">
-    Halaman ini butuh JavaScript untuk keranjang pesanan. Aktifkan JavaScript, atau pesan langsung lewat
+    This page needs JavaScript for the order cart. Turn it on, or order directly on
     <a href="https://wa.me/6287784456676">WhatsApp</a>.
   </div>
 </noscript>
@@ -260,8 +260,8 @@
 <div class="modal" id="modal" aria-hidden="true">
   <div class="modal-bg" data-close></div>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="m-name">
-    <button type="button" class="sheet-x" id="m-close" data-close aria-label="Tutup">×</button>
-    <button type="button" class="sheet-grip" id="m-grip" aria-label="Tarik ke bawah atau ketuk untuk menutup"><span></span></button>
+    <button type="button" class="sheet-x" id="m-close" data-close aria-label="Close">×</button>
+    <button type="button" class="sheet-grip" id="m-grip" aria-label="Drag down or tap to close"><span></span></button>
     <div class="sheet-photo" id="m-photo"></div>
     <div class="sheet-body">
       <div id="m-tag"></div>
@@ -272,13 +272,13 @@
       <div class="sheet-cta">
         <div class="sheet-buy">
           <div class="qtyctl">
-            <button type="button" id="m-minus" aria-label="Kurangi jumlah">−</button>
+            <button type="button" id="m-minus" aria-label="Decrease quantity">−</button>
             <span id="m-qty">1</span>
-            <button type="button" id="m-plus" aria-label="Tambah jumlah">+</button>
+            <button type="button" id="m-plus" aria-label="Increase quantity">+</button>
           </div>
           <div class="sheet-price" id="m-price"></div>
         </div>
-        <button type="button" class="btn primary" id="m-add">Tambah ke pesanan</button>
+        <button type="button" class="btn primary" id="m-add">Add to order</button>
       </div>
     </div>
   </div>
@@ -287,11 +287,11 @@
 <div class="modal" id="chooser" aria-hidden="true">
   <div class="modal-bg" data-close></div>
   <div class="sheet choose" role="dialog" aria-modal="true" aria-labelledby="c-title">
-    <h2 id="c-title">Pizza ini sudah ada</h2>
-    <p id="c-sub">Mau tambah pizza lain dengan topping berbeda, atau ubah yang sudah ada?</p>
+    <h2 id="c-title">This pizza is already in your order</h2>
+    <p id="c-sub">Add another one with different toppings, or edit the one you already have?</p>
     <div id="c-list"></div>
-    <button type="button" class="btn" id="c-new">Tambah pizza baru</button>
-    <button type="button" class="btn ghost" id="c-cancel" style="margin-top:8px">Batal</button>
+    <button type="button" class="btn" id="c-new">Add a new pizza</button>
+    <button type="button" class="btn ghost" id="c-cancel" style="margin-top:8px">Cancel</button>
   </div>
 </div>
 
