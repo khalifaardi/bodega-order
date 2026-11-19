@@ -846,7 +846,8 @@ function sheetOptions() {
   if (sheetItem.pilih) {
     const sec = SECTIONS.find(s => s.id === sheetItem.dari);
     return {
-      list: (sec ? sec.items : []).filter(i => i.id !== sheetItem.id),
+      // bundle tidak boleh menawarkan dirinya sendiri (atau bundle lain) sebagai pilihan
+      list: (sec ? sec.items : []).filter(i => i.id !== sheetItem.id && !i.pilih),
       max: sheetItem.pilih, min: sheetItem.pilih,
       judul: `Pilih ${sheetItem.pilih} saus`, note: "wajib", addPrice: false,
     };

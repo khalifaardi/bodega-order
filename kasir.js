@@ -161,7 +161,10 @@ function tutupPanel() {
 function openTops(id, pilihMode = false) {
   const it = ITEM_MAP.get(id);
   if (!it) return;
-  const daftar = pilihMode ? (SECTIONS.find(s => s.id === it.dari) || { items: [] }).items : TOPPING;
+  // bundle tidak boleh menawarkan dirinya sendiri (atau bundle lain) sebagai pilihan
+  const daftar = pilihMode
+    ? (SECTIONS.find(s => s.id === it.dari) || { items: [] }).items.filter(t => t.id !== it.id && !t.pilih)
+    : TOPPING;
   const terpilih = state.tops;
 
   bukaPanel(`
