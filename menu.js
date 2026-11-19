@@ -117,7 +117,6 @@ const SECTIONS = [
   {
     id: "dips",
     judul: "Dips",
-    catatan: "Rp7.000 per dip, or Rp15.000 for the House Dip Trio.",
     items: [
       { id: "dip-trio", nama: "House Dip Trio", harga: 15000, pilih: 3, dari: "dips",
         ket: "Choose three dips: hot honey, cream chives, creamy pesto." },
