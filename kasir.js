@@ -706,6 +706,31 @@ function jamSaja(v) {
 
 /** "1x Hot Honey Ricotta = 80000; 2x Al Tartufo = 180000" → baris rincian. */
 function rincianItem(detail) {
+  const raw = String(detail || "").trim();
+
+  // Pesanan web mengirim item_detail sebagai JSON ([{id,qty,harga,tops}]); kasir mengirim
+  // teks "1x Nama = 80000". Tanpa cabang ini, JSON-nya tampil di kartu sebagai kode mentah.
+  if (raw.startsWith("[")) {
+    try {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        return arr.map(o => {
+          const it = ITEM_MAP.get(o.id) || {};
+          const tops = (Array.isArray(o.tops) ? o.tops : [])
+            .map(id => (ITEM_MAP.get(id) || {}).nama)
+            .filter(Boolean);
+          const qty = Number(o.qty) || 0;
+          const harga = Number(o.harga) || 0;
+          return {
+            qty: qty ? String(qty) : "",
+            nama: (it.nama || String(o.id || "?")) + (tops.length ? ` + ${tops.join(", ")}` : ""),
+            harga: qty ? qty * harga : null,
+          };
+        });
+      }
+    } catch (e) { /* JSON rusak: tampilkan sebagai teks apa adanya di bawah */ }
+  }
+
   return String(detail || "")
     .split(";")
     .map(s => s.trim())
