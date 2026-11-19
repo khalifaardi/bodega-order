@@ -33,9 +33,9 @@ const SECTIONS = [
     judul: "Special Pies",
     catatan: "One size, 28 cm. Fermented dough, baked to order.",
     items: [
-      { id: "hhr", img: "img/hhr.webp", nama: "Hot Honey Ricotta", harga: 80000, tag: "fav",
+      { id: "hhr", img: "img/hhr.webp?v=20261119", nama: "Hot Honey Ricotta", harga: 80000, tag: "fav",
         ket: "Pomodoro, mozzarella, pepperoni, ricotta, hot honey, parmigiano, olive oil." },
-      { id: "dpep", img: "img/dpep.webp", nama: "Double Pepperoni", harga: 85000, tag: ["pick", "new"],
+      { id: "dpep", img: "img/dpep.webp?v=20261119", nama: "Double Pepperoni", harga: 85000, tag: ["pick", "new"],
         ket: "Pomodoro, mozzarella, pepperoni, onion, parmesan, olive oil." },
       { id: "bpp", img: "img/bpp.webp", nama: "Beef Pastrami Pickles", harga: 88000, tag: "pick",
         ket: "Pomodoro, mozzarella, beef pastrami, pickled red onion and gherkin, parmigiana." },
