@@ -4,8 +4,8 @@
 
 // Isi dengan URL Google Apps Script Web App kalau mau setiap pesanan
 // otomatis tercatat di Google Sheets. Kosongkan kalau belum siap.
-const LOG_ENDPOINT = "";          // URL /exec Apps Script, sama dengan kasir.js
-const LOG_KEY = "KUNCI_SAMA_DENGAN_RAHASIA";   // samakan dengan Script Property RAHASIA
+const LOG_ENDPOINT = "https://script.google.com/macros/s/AKfycbzKz15pob4Y5HNRgFF-rvvQbIk1NkUSH_YDyFnqC66j5417SC6Tw0uL79fIO0JTueME/exec";   // URL /exec Apps Script, sama dengan kasir.js
+const LOG_KEY = "a4ab1e3d8541ccf8f2e52cdbefa9820e55e4df695d16ae32";   // samakan dengan Script Property RAHASIA
 
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));

@@ -14,11 +14,11 @@
 
 // URL web app Apps Script (berakhiran /exec). Selama kosong, pesanan hanya
 // tersimpan di perangkat ini dan belum bisa dipastikan sampai ke sheet.
-const LOG_ENDPOINT = "";
+const LOG_ENDPOINT = "https://script.google.com/macros/s/AKfycbzKz15pob4Y5HNRgFF-rvvQbIk1NkUSH_YDyFnqC66j5417SC6Tw0uL79fIO0JTueME/exec";
 
 // Harus sama dengan Script Property RAHASIA di Apps Script. Bukan pengaman
 // sungguhan (berkas ini publik), hanya penangkal kiriman asal-asalan.
-const LOG_KEY = "bdg-1031dd3af9d6aaab1e6335ed";
+const LOG_KEY = "a4ab1e3d8541ccf8f2e52cdbefa9820e55e4df695d16ae32";
 
 const SHOP_ = SHOP;
 const TOPPING = (SECTIONS.find(s => s.id === "topping") || { items: [] }).items;
