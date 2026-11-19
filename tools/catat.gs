@@ -38,7 +38,7 @@ var KOLOM = [
   'meja', 'nama', 'wa', 'no_ref',
   'pickup', 'tanggal', 'jam', 'pax', 'sumber', 'kasir',
   'total_menu', 'kemasan', 'total', 'item_detail', 'pesan',
-  'nomor_antre'
+  'nomor_antre', 'sumber_lain'
 ];
 
 /* ---------- tulis ---------- */

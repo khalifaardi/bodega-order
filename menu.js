@@ -136,6 +136,8 @@ const SUMBER = [
   { id: "threads", label: "Threads" },
   { id: "gmaps", label: "Google Maps" },
   { id: "teman", label: "Teman / rekomendasi" },
+  // bebas: pelanggan menulis sendiri; halaman menampilkan kolom teks begitu ini dipilih
+  { id: "lainnya", label: "Lainnya", bebas: true },
 ];
 
 // Ulasan yang tampil di bawah menu. Google diambil dari listing (per 17 Nov 2026);

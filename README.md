@@ -273,32 +273,80 @@ Mengganti atau menambah foto:
 
 Foto dimuat lambat (`loading="lazy"`), jadi halaman tetap ringan walau ada 19 foto.
 
-## Mencatat pesanan ke Google Sheets
+## Mencatat pesanan ke Google Sheet (endpoint log)
 
-Sekarang pesanan hanya masuk ke chat WhatsApp. Supaya otomatis tercatat
-(dengan kolom "asal pelanggan"), sambungkan ke Google Sheets:
+Dua pintu di satu endpoint: `doPost` menambah satu baris (nomor antre diberikan server,
+di dalam `LockService`), `doGet?action=hariIni` mengembalikan pesanan satu tanggal lewat
+JSONP. Kode lengkapnya `tools/catat.gs` — jangan tulis ulang versi ringkas: kolomnya harus
+sama dengan yang dikirim `app.js` dan `kasir.js` (22 kolom, daftar `KOLOM`).
 
-1. Buat Google Sheet baru → **Extensions → Apps Script**.
-2. Tempel kode di bawah, simpan.
-3. **Deploy → New deployment → Web app**, akses "Anyone", lalu salin URL-nya.
-4. Buka `app.js`, isi `const LOG_ENDPOINT = "URL-tadi";`
+1. Buat Google Sheet baru, mis. "Bodega — Pesanan". Tab `Pesanan` dibuat skrip sendiri.
+2. **Extensions → Apps Script**, hapus isi default, tempel seluruh `tools/catat.gs`, simpan.
+3. **Project Settings** (roda gigi) → **Script properties** → tambah `RAHASIA` = kunci acak
+   (`openssl rand -hex 24`).
+4. **Deploy → New deployment → Web app**: Execute as **Me**, Who has access **Anyone**.
+   Salin URL yang berakhiran `/exec`.
+5. Isi URL itu ke `LOG_ENDPOINT` di **`app.js` dan `kasir.js`**, dan kunci yang sama ke
+   `LOG_KEY` di kedua berkas. Jalankan `tools/versi.sh`, lalu push.
+6. Uji tanpa membuka halaman:
 
-```js
-function doPost(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-  const d = JSON.parse(e.postData.contents);
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(["waktu","order_id","tipe","nama","wa","alamat","patokan",
-                     "tanggal","jam","pax","item","total","sumber","catatan"]);
-  }
-  sheet.appendRow([d.waktu,d.order_id,d.tipe,d.nama,d.wa,d.alamat,d.patokan,
-                   d.tanggal,d.jam,d.pax,d.item,d.total,d.sumber,d.catatan]);
-  return ContentService.createTextOutput("ok");
-}
+```bash
+curl -s -X POST "<URL-EXEC>" -H "Content-Type: text/plain" -d '{"key":"<RAHASIA>","order_id":"TES-1","kanal":"web","waktu":"2026-11-19T09:00:00+08:00","total":42000,"sumber":"Lainnya","sumber_lain":"undangan teman"}'
+curl -s "<URL-EXEC>?action=hariIni&tgl=2026-11-19&key=<RAHASIA>&callback=cb"
 ```
 
-Pesanan tetap dikirim ke WhatsApp walau pencatatan gagal — yang gagal disimpan
-di perangkat pelanggan dan dicoba ulang saat halaman dibuka lagi.
+Baris harus muncul di sheet dan `hariIni` harus memuat `TES-1`. Hapus baris uji setelahnya.
+
+7. Setiap kali skrip diubah: **Deploy → Manage deployments → ✏️ → Version: New version**.
+   URL tetap sama. "New deployment" membuat URL baru dan halaman jadi putus.
+
+Kolom `sumber_lain` menyimpan teks bebas saat pelanggan atau kasir memilih "Lainnya"
+(pilihan di `SUMBER`); `nomor_antre` hanya terisi untuk `kanal: "kasir"`. Kalau sheet sudah
+ada, skrip menambahkan sendiri kolom yang belum ada **di ujung** baris judul — jangan
+menyisipkan kolom di tengah, karena `nomorBerikut` dan `hariIni` membaca kolom menurut posisi.
+
+Batasannya: `RAHASIA` bukan autentikasi — berkas klien publik, jadi siapa pun yang membuka
+halaman bisa membaca `LOG_KEY`. Ia hanya menahan kiriman asal-asalan. Kuota Apps Script juga
+membatasi frekuensi, dan karena itu poller berhenti saat tab disembunyikan.
+
+Pesanan tetap dikirim ke WhatsApp walau pencatatan gagal — yang gagal disimpan di perangkat
+pelanggan dan dicoba ulang saat halaman dibuka lagi.
+
+## Kasir di belakang Cloudflare Access
+
+`kasir.html` menulis uang: satu baris salah merusak rekonsiliasi dengan venue. `noindex`
+hanya menyembunyikannya dari mesin pencari, bukan dari orang yang memegang tautannya. GitHub
+Pages tidak punya password (Pages privat butuh Enterprise Cloud), jadi gerbangnya harus di
+depan host: **Cloudflare Access dengan cakupan path** — gratis pada skala satu kedai.
+
+Prasyarat yang paling sering terlewat: Access hanya menyaring lalu lintas yang **lewat DNS
+domain itu sendiri**. DNS `bodega-pizzeria.shop` sekarang di Jagoan Hosting, jadi zone-nya
+harus pindah ke Cloudflare dulu.
+
+1. Cloudflare → **Add a site** → `bodega-pizzeria.shop` → paket **Free**.
+2. Cloudflare memberi dua nameserver. Di Jagoan: **Domains → domain → Manage Nameservers →
+   Use custom nameservers**, isi keduanya.
+3. Tunggu status zone **Active** di Cloudflare (biasanya < 1 jam, paling lama 24 jam).
+4. Cloudflare → **DNS** → buat ulang record yang sama:
+   - `A` `@` → `185.199.108.153`, `.109.153`, `.110.153`, `.111.153` — empat baris, **Proxied (oranye)**
+   - `CNAME` `www` → `khalifaardi.github.io` — **Proxied (oranye)**
+5. **SSL/TLS → Overview → Full**, bukan Full (strict). Cloudflare memegang sertifikat untuk
+   pengunjung; sertifikat GitHub di belakang proxy bisa gagal diperbarui otomatis, dan mode
+   Full tetap jalan kalau itu terjadi — Full (strict) akan memutus situs.
+6. **Zero Trust → Access → Applications → Add an application → Self-hosted**:
+   - Name: `Bodega kasir`
+   - Public hostname: `bodega-pizzeria.shop`, path `kasir.html*`
+   - Session duration: 1 week (atau 24 jam kalau lebih ketat)
+   - Policy **Allow**, Include → **Emails** → email pemilik + staf yang boleh mencatat
+   - Login method: **One-time PIN** (tanpa password, tidak butuh Google Workspace)
+7. Uji di jendela private: `/kasir.html` harus memunculkan halaman login Cloudflare,
+   sedangkan `/` terbuka seperti biasa. Halaman lain (menu, `bayar.html`) tidak ikut terkunci.
+
+Yang tetap harus dikatakan ke pemilik: `LOG_KEY` masih terlihat di berkas publik, jadi
+endpoint tulis bisa dipanggil siapa pun yang tahu URL + kuncinya. Access menjaga **halaman**,
+bukan **endpoint**. Kalau nanti ada baris palsu, langkah berikutnya adalah memindahkan
+`doPost` ke belakang Worker yang ikut memeriksa sesi Access. Alternatif "tanpa pindah DNS"
+tidak ada — membiarkan kasir terbuka adalah pilihan lain, bukan solusi.
 
 ## Auto-reply WhatsApp
 

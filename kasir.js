@@ -283,6 +283,12 @@ function bukaTiket() {
         <select id="sumber-kasir">${optSumber}</select>
       </div>
 
+      <div class="field hidden" id="field-sumber-lain">
+        <label for="sumber-lain">Dari mana? Tulis sendiri <span class="wajib">wajib</span></label>
+        <input id="sumber-lain" type="text" maxlength="60" placeholder="mis. undangan teman, TikTok kakak" autocomplete="off">
+        <div class="err" id="sumber-lain-err">Tulis dari mana tamu tahu Bodega.</div>
+      </div>
+
     </div>
 
     <div class="lembar-aksi">
@@ -300,8 +306,21 @@ function bukaTiket() {
     if (wa.value !== bersih) wa.value = bersih;
   });
 
+  // "Lainnya" membuka kolom teks sendiri; pilihan lain menyembunyikannya lagi
+  const selSumber = $("#sumber-kasir"), boxLain = $("#field-sumber-lain");
+  const toggleLain = () => {
+    if (!boxLain) return;
+    boxLain.classList.toggle("hidden", selSumber.value !== "Lainnya");
+  };
+  selSumber.addEventListener("change", () => {
+    toggleLain();
+    if (selSumber.value === "Lainnya") setTimeout(() => $("#sumber-lain").focus(), 60);
+  });
+  toggleLain();
+
   // galat hilang begitu kolom wajib diisi
-  [["#meja", "#field-meja", "#meja-err"], ["#noref", "#field-noref", "#noref-err"]].forEach(([i, f, e]) => {
+  [["#meja", "#field-meja", "#meja-err"], ["#noref", "#field-noref", "#noref-err"],
+   ["#sumber-lain", "#field-sumber-lain", "#sumber-lain-err"]].forEach(([i, f, e]) => {
     const el = $(i);
     el.addEventListener("input", () => {
       if (!el.value.trim()) return;
@@ -426,6 +445,7 @@ function kumpulkan() {
     jam: "",
     pax: "",
     sumber: v("#sumber-kasir"),
+    sumber_lain: v("#sumber-kasir") === "Lainnya" ? v("#sumber-lain") : "",
     kasir: "kasir",
     total_menu: cartTotal(),
     kemasan: kemasan(),
@@ -453,6 +473,10 @@ async function simpanPesanan() {
     wajib("#field-meja", "#meja-err", !!($("#meja").value || "").trim());
   }
   wajib("#field-noref", "#noref-err", !!($("#noref").value || "").trim());
+  // kalau kasir memilih "Lainnya", teksnya ikut wajib — label saja tidak bisa ditindaklanjuti
+  if ((($("#sumber-kasir") || {}).value || "") === "Lainnya") {
+    wajib("#field-sumber-lain", "#sumber-lain-err", !!($("#sumber-lain").value || "").trim());
+  }
 
   if (kurang.length) {
     const f = $(kurang[0]);

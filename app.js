@@ -14,7 +14,7 @@ const rupiah = n => "Rp" + n.toLocaleString("id-ID");
 const angka  = n => n.toLocaleString("id-ID");
 
 const cart = new Map();          // key -> { id, nama, harga, tops: [], qty }
-const state = { mode: "reservasi", sumber: "" };
+const state = { mode: "reservasi", sumber: "", sumberLain: "" };
 
 /* ---------------- menu ---------------- */
 
@@ -273,7 +273,7 @@ function renderSummary() {
 function simpan() {
   try {
     sessionStorage.setItem("bodega_cart", JSON.stringify({
-      mode: state.mode, sumber: state.sumber,
+      mode: state.mode, sumber: state.sumber, sumberLain: state.sumberLain,
       rows: Array.from(cart.entries()),
     }));
   } catch (e) {}
@@ -288,6 +288,7 @@ function muat() {
     d.rows.forEach(([k, l]) => { if (ITEM_MAP.has(l.id) && l.qty > 0) cart.set(k, l); });
     if (d.mode) state.mode = d.mode;
     if (d.sumber) state.sumber = d.sumber;
+    if (d.sumberLain) state.sumberLain = d.sumberLain;
   } catch (e) {}
 }
 
@@ -344,6 +345,15 @@ function clearErrors() {
   $$(".field.bad").forEach(f => f.classList.remove("bad"));
 }
 
+// "Lainnya" membuka kolom teks; pilihan lain menyembunyikannya lagi
+function toggleSumberLain() {
+  const box = $("#f-sumber-lain"), inp = $("#sumber-lain");
+  if (!box || !inp) return;
+  const aktif = state.sumber === "Lainnya";
+  box.classList.toggle("hidden", !aktif);
+  if (aktif && !inp.value) setTimeout(() => inp.focus(), 60);
+}
+
 function phoneOK(raw) {
   const d = String(raw).replace(/\D/g, "");
   if (d.startsWith("0")) return { ok: d.length >= 10 && d.length <= 14, norm: "62" + d.slice(1) };
@@ -371,6 +381,11 @@ function validate() {
 
   // wajib diisi: ini satu-satunya data atribusi yang kami punya
   if (!state.sumber) ok = invalid("#sumber", "Pilih satu dulu, ini membantu kami tahu harus promosi di mana.");
+
+  // "Lainnya" tanpa teks tidak memberi tahu apa pun: minta isinya di langkah yang sama
+  const lainEl = $("#sumber-lain");
+  if (state.sumber === "Lainnya" && (!lainEl || lainEl.value.trim().length < 2))
+    ok = invalid("#sumber-lain", "Tulis dulu dari mana kamu tahu Bodega.");
 
   if (!cart.size) { show("#view-menu"); ok = false; }
   return ok ? { phone: p.norm } : null;
@@ -446,7 +461,12 @@ function buildMessage(id, phone) {
   if (note) { lines.push(""); lines.push(`Catatan: ${note}`); }
 
   lines.push("");
-  if (state.sumber) lines.push(`Tahu Bodega dari: ${state.sumber}`);
+  if (state.sumber === "Lainnya") {
+    const lain = ($("#sumber-lain").value || "").trim();
+    lines.push(`Tahu Bodega dari: Lainnya — ${lain}`);
+  } else if (state.sumber) {
+    lines.push(`Tahu Bodega dari: ${state.sumber}`);
+  }
   return lines.join("\n");
 }
 
@@ -479,6 +499,7 @@ function payload(id, phone, message) {
     total: grandTotal(),
     box: boxFee(),
     sumber: state.sumber,
+    sumber_lain: state.sumber === "Lainnya" ? ($("#sumber-lain").value || "").trim() : "",
     catatan: $("#catatan").value.trim(),
     pesan: message,
     url: location.href,
@@ -714,8 +735,13 @@ async function submit(ev) {
   cart.clear();
   state.sumber = "";
   try { sessionStorage.removeItem("bodega_cart"); } catch (e) {}
+  state.sumberLain = "";
   const selS = $("#sumber");
   if (selS) selS.value = "";
+  const lainS = $("#sumber-lain");
+  if (lainS) lainS.value = "";
+  const boxS = $("#f-sumber-lain");
+  if (boxS) boxS.classList.add("hidden");
   renderCartLines();
   syncBar();
 }
@@ -1237,8 +1263,21 @@ document.addEventListener("DOMContentLoaded", () => {
   selSumber.addEventListener("change", () => {
     state.sumber = selSumber.value;
     if (selSumber.value) $("#f-sumber").classList.remove("bad");
+    toggleSumberLain();
     simpan();
   });
+
+  // teks "Lainnya" ikut disimpan, jadi refresh tidak menghapus alasan pelanggan
+  const inpLain = $("#sumber-lain");
+  if (inpLain) {
+    inpLain.value = state.sumberLain || "";
+    inpLain.addEventListener("input", () => {
+      state.sumberLain = inpLain.value;
+      if (inpLain.value.trim()) $("#f-sumber-lain").classList.remove("bad");
+      simpan();
+    });
+  }
+  toggleSumberLain();
 
   // tanggal minimal hari ini (pakai waktu lokal, bukan UTC)
   const today = new Date();
@@ -1262,6 +1301,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (match) {
       selSumber.value = match.label;
       state.sumber = match.label;
+      toggleSumberLain();
       simpan();
     }
   }
