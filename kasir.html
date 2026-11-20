@@ -29,12 +29,6 @@
       <input id="cari" type="search" placeholder="Cari menu…" autocomplete="off" aria-label="Cari menu">
     </div>
 
-    <div class="pindai-wrap">
-      <button type="button" class="pindai-btn" id="pindai">Pindai struk Sanang</button>
-      <input type="file" id="pindai-file" accept="image/*" capture="environment" hidden>
-      <span class="pindai-status" id="pindai-status"></span>
-    </div>
-
     <div class="tabs" id="tabs"></div>
   </div>
 </header>
@@ -58,6 +52,16 @@
       <div class="bar-total">Total <b id="total">Rp0</b></div>
       <button type="button" class="btn primary" id="buka-tiket" disabled>Lihat pesanan</button>
     </div>
+    <div class="pindai-row">
+      <button type="button" class="pindai-btn" id="pindai" aria-label="Pindai struk Sanang" title="Pindai struk Sanang">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+          <path d="M9.2 4 8 6H5.2A2.2 2.2 0 0 0 3 8.2v9.6A2.2 2.2 0 0 0 5.2 20h13.6a2.2 2.2 0 0 0 2.2-2.2V8.2A2.2 2.2 0 0 0 18.8 6H16l-1.2-2H9.2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <circle cx="12" cy="13" r="3.3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+      </button>
+      <span class="pindai-status" id="pindai-status"></span>
+    </div>
+    <input type="file" id="pindai-file" accept="image/*" capture="environment" hidden>
   </div>
 </div>
 
