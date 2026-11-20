@@ -17,7 +17,7 @@
   --radius:12px;
   --display:'Bodega Display', ui-sans-serif, system-ui, sans-serif;
   --mono:'Bodega Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --bar:138px;
+  --bar:86px;
 }
 
 *{box-sizing:border-box}
@@ -327,16 +327,22 @@ body.lihat-hari .bar-kasir{display:none}
 .h-items li.h-kemasan{color:var(--ink-soft);font-style:italic}
 
 /* ---------- pindai struk Sanang ---------- */
-.pindai-row{display:flex;align-items:center;gap:10px;margin-top:6px}
+.bar-aksi{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .pindai-btn{
   flex:0 0 auto;display:grid;place-items:center;
-  width:44px;height:44px;padding:0;
-  border:1px solid var(--line-strong);border-radius:12px;background:var(--white);color:var(--ink);
+  width:52px;height:52px;padding:0;
+  border:1px solid var(--line-strong);border-radius:10px;background:var(--white);color:var(--ink);
   cursor:pointer;
 }
 .pindai-btn:active{transform:scale(.96);background:#F7F3EC}
 .pindai-btn[disabled]{opacity:.45}
-.pindai-status{font-size:11.5px;color:var(--ink-soft);letter-spacing:.02em}
+/* status melayang di atas bar, tidak menambah tinggi */
+.pindai-status{
+  position:absolute;right:16px;bottom:calc(100% + 8px);
+  font-size:11.5px;letter-spacing:.02em;color:var(--ink);
+  background:var(--white);border:1px solid var(--line);border-radius:999px;
+  padding:6px 12px;box-shadow:0 4px 14px rgba(0,0,0,.10);max-width:70%;
+}
 .pindai-status:empty{display:none}
 
 /* ringkasan hasil baca di dalam lembar tiket */
