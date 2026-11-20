@@ -161,6 +161,9 @@ function bukaPanel(html) {
   $("#panel").hidden = false;
 }
 function tutupPanel() {
+  // jejak struk tidak boleh menempel ke pesanan manual berikutnya
+  state.struk = null;
+  state.waktuStruk = "";
   $("#panel").hidden = true;
   const isi = $("#panel-isi");
   isi.style.transform = "";
@@ -521,7 +524,7 @@ async function simpanPesanan() {
   let sinkron = false;
 
   if (terkirim) {
-    const baris = await tungguBaris(data.order_id);
+    const baris = await tungguBaris(data.order_id, (data.waktu || "").slice(0, 10) || undefined);
     if (baris) {
       sinkron = true;
       if (baris.nomor_antre) nomor = Number(baris.nomor_antre);
@@ -672,8 +675,8 @@ async function bacaHari(tgl) {
 }
 
 /** Tunggu sampai baris ini benar-benar terlihat di sheet. */
-async function tungguBaris(order_id) {
-  const tgl = tanggalLokal();
+async function tungguBaris(order_id, tgl = tanggalLokal()) {
+  // struk boleh bertanggal lain; cari di tanggal pesanan itu, bukan di hari ini
   for (let i = 0; i < 6; i++) {
     try {
       const d = await bacaHari(tgl);
@@ -845,6 +848,18 @@ const OCR_ASET = {
 };
 
 let ocrWorker = null;
+let ocrTimer = null;
+
+// halaman kasir menyala sepanjang hari: worker OCR (core WASM + 1,9 MB data)
+// boleh tidur lagi setelah 3 menit tanpa pemindaian, bukan menetap di memori
+function tidurkanWorker() {
+  clearTimeout(ocrTimer);
+  ocrTimer = setTimeout(async () => {
+    const w = ocrWorker;
+    ocrWorker = null;
+    if (w) { try { await w.terminate(); } catch (e) {} }
+  }, 180000);
+}
 
 function statusPindai(t) {
   const el = $("#pindai-status");
@@ -864,18 +879,28 @@ async function muatTesseract() {
 }
 
 async function siapkanWorker(kabar) {
+  clearTimeout(ocrTimer);
   if (ocrWorker) return ocrWorker;
   const T = await muatTesseract();
   ocrWorker = await T.createWorker("eng", 1, {
     workerPath: OCR_ASET.worker,
     corePath: OCR_ASET.core,
     langPath: OCR_ASET.lang,
-    logger: m => { if (m && m.status === "recognizing text" && kab) kab(m.progress || 0); },
+    logger: m => { if (m && m.status === "recognizing text" && kabar) kabar(m.progress || 0); },
   });
   return ocrWorker;
 }
 
 /* ---------- baca teks struk (fungsi murni, bisa diuji tanpa kamera) ---------- */
+
+// satu-satunya jalan aman menaruh teks hasil OCR ke innerHTML
+const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// topping bukan baris pesanan tersendiri: jangan pernah dipetakan jadi item keranjang
+const BAGIAN_BUKAN_BARIS = new Set(["topping"]);
+const BAGIAN_ITEM = new Map();
+SECTIONS.forEach(s => s.items.forEach(i => BAGIAN_ITEM.set(i.id, s.id)));
 
 function normStruk(t) {
   return String(t || "")
@@ -907,6 +932,7 @@ function cocokkan(nama) {
   let best = null, skor = 0;
   for (const it of ITEM_MAP.values()) {
     if (!it || !it.nama) continue;
+    if (BAGIAN_BUKAN_BARIS.has(BAGIAN_ITEM.get(it.id))) continue;   // topping bukan baris
     const s = rasioMirip(n, normStruk(it.nama).replace(/\bbodega\b/g, "").trim());
     if (s > skor) { skor = s; best = it; }
   }
@@ -935,7 +961,7 @@ function bacaStruk(teks) {
 
   const reRef  = /\b(\d{2})\s*-\s*(\d{3})\b/;
   const reTgl  = /\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2})[:.](\d{2})\b/;
-  const reStaf = /^([A-Za-z][A-Za-z .'-]{1,24}),?\s*lant[a-z]*\s*(\d+)\s*$/i;
+  const reStaf = /^(?:(?:kasir|sanang)\s*[:·-]?\s*)?([A-Za-z][A-Za-z .'-]{1,24}),?\s*lant[a-z]*\s*(\d+)\s*$/i;
   // jangan ditambatkan di awal baris: OCR kerap menempelkan sisa karakter di depan ("7/2) 1xThe …")
   const reItem = /(?:^|[^0-9])(\d{1,2})\s*[x×*]\s*([A-Za-z][^|]*)$/i;
 
@@ -951,7 +977,9 @@ function bacaStruk(teks) {
         .replace(/\s*bodega\s*$/i, "")
         .replace(/[\s=\u2014\u2013\-|]+$/, "")
         .trim();
-      h.items.push({ qty: Math.min(99, Number(m[1]) || 1), nama: nm });
+      const q = Number(m[1]);
+      if (q < 1) continue;                       // "0 x ..." bukan pesanan
+      h.items.push({ qty: Math.min(99, q), nama: nm });
       continue;
     }
     if (!h.nama && h.no_ref) { h.nama = b; continue; }
@@ -974,7 +1002,7 @@ function ringkasStruk() {
   const s = state.struk;
   if (!s) return "";
   const keluar = [];
-  keluar.push(`<b>Struk terbaca</b> · ref ${s.no_ref || "<span class='baca-warn'>tidak terbaca</span>"}`);
+  keluar.push(`<b>Struk terbaca</b> · ref ${s.no_ref ? esc(s.no_ref) : "<span class='baca-warn'>tidak terbaca</span>"}`);
   if (s.waktu) {
     const hariIni = (state.__hariIni || "");
     const beda = hariIni && hariIni !== s.waktu.slice(0, 10);
@@ -987,7 +1015,7 @@ function ringkasStruk() {
   }
   if (s.gagal.length) {
     keluar.push(`<ul>${s.gagal.map(g =>
-      `<li class='baca-warn'>${g.qty} × ${g.nama} — belum cocok, tambahkan manual</li>`
+      `<li class='baca-warn'>${Number(g.qty) || 1} × ${esc(g.nama)} — ${g.pilih ? "pilih variannya manual" : "belum cocok, tambahkan manual"}</li>`
     ).join("")}</ul>`);
   }
   if (!s.cocok.length && !s.gagal.length) {
@@ -995,20 +1023,17 @@ function ringkasStruk() {
   }
   keluar.push(`<div>Periksa jumlah di daftar bawah — OCR bisa salah baca angka. Ubah dengan − / + atau Hapus kalau menunya keliru.</div>`);
   if (s.teks) {
-    const aman = s.teks.replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
-    keluar.push(`<details><summary>Teks mentah OCR</summary><pre>${aman}</pre></details>`);
+    keluar.push(`<details><summary>Teks mentah OCR</summary><pre>${esc(s.teks)}</pre></details>`);
   }
   return `<div class="baca">${keluar.join("")}</div>`;
 }
 
 function terapkanStruk(h) {
-  state.cart.clear();
-  state.tops = new Set();
-
   const cocok = [], gagal = [];
   for (const it of h.items) {
     const c = cocokkan(it.nama);
     if (!c.item) { gagal.push(it); continue; }
+    if (c.item.pilih) { gagal.push({ ...it, pilih: c.item.pilih }); continue; }   // perlu pilih saus
     const key = `${c.item.id}|`;
     const ada = state.cart.get(key);
     state.cart.set(key, {
@@ -1020,11 +1045,28 @@ function terapkanStruk(h) {
 
   const d = new Date();
   state.__hariIni = waktuLokal(d).slice(0, 10);
+  // foto gagal dibaca tidak boleh menghapus pesanan yang sudah disusun kasir
+  if (!cocok.length && state.cart.size > 0) {
+    statusPindai("Foto tidak terbaca — pesanan yang ada tidak diubah.");
+    return;
+  }
+
+  state.cart.clear();
+  state.tops = new Set();
+  for (const c of cocok) {
+    const key = `${c.item.id}|`;
+    const ada = state.cart.get(key);
+    state.cart.set(key, {
+      id: c.item.id, nama: c.item.nama, harga: c.item.harga,
+      tops: [], picks: false, qty: (ada ? ada.qty : 0) + c.qty,
+    });
+  }
+
   state.struk = { no_ref: h.no_ref, nama: h.nama, waktu: h.waktu, petugas: h.petugas, lantai: h.lantai, teks: h.teks, cocok, gagal };
   state.waktuStruk = h.waktu || "";
 
   bukaTiket();
-  if (h.tipe) setTipe(h.tipe);
+  setTipe(h.tipe || "");          // tipe lama tidak boleh menempel (bisa salah biaya box)
 
   const nama = $("#nama"); if (nama) nama.value = h.nama || "";
   const ref = $("#noref"); if (ref) ref.value = h.no_ref || "";
@@ -1037,8 +1079,19 @@ function terapkanStruk(h) {
 
 // Foto struk hampir selalu diambil di atas meja/meja stainless: latar ramai itu
 // membuat Tesseract membaca pola di meja sebagai teks. Potong ke kotak kertas dulu.
+function gambarDariFile(file) {
+  if (typeof createImageBitmap === "function") return createImageBitmap(file);
+  return new Promise((ok, gagal) => {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => { URL.revokeObjectURL(url); ok(im); };
+    im.onerror = () => { URL.revokeObjectURL(url); gagal(new Error("foto tidak bisa dibaca")); };
+    im.src = url;
+  });
+}
+
 async function siapkanGambar(file) {
-  const bmp = await createImageBitmap(file);
+  const bmp = await gambarDariFile(file);
   const skala = Math.min(1, 900 / Math.max(bmp.width, bmp.height));
   const w = Math.max(1, Math.round(bmp.width * skala));
   const h = Math.max(1, Math.round(bmp.height * skala));
@@ -1077,10 +1130,15 @@ async function siapkanGambar(file) {
   const octx = out.getContext("2d");
   octx.imageSmoothingQuality = "high";
   octx.drawImage(kanvas, sx, sy, sw, sh, 0, 0, out.width, out.height);
+  if (typeof bmp.close === "function") bmp.close();   // 12MP bitmap jangan menggantung
   return out;
 }
 
+let ocrJalan = false;
+
 async function pindaiStruk(file) {
+  if (ocrJalan) return;                    // satu pemindaian pada satu waktu
+  ocrJalan = true;
   const btn = $("#pindai");
   if (btn) btn.disabled = true;
   try {
@@ -1097,7 +1155,9 @@ async function pindaiStruk(file) {
   } catch (e) {
     statusPindai("Gagal membaca struk: " + ((e && e.message) || e));
   } finally {
+    ocrJalan = false;
     if (btn) btn.disabled = false;
+    tidurkanWorker();
   }
 }
 
