@@ -369,3 +369,27 @@ body.lihat-hari .bar-kasir{display:none}
   .pindai-btn{width:48px}
   .bar-total b{font-size:18px}
 }
+
+/* ---------- pilihan sumber foto struk ---------- */
+.pilih-foto{position:fixed;inset:0;z-index:70;display:flex;align-items:flex-end}
+.pilih-foto[hidden]{display:none}
+.pilih-tirai{position:absolute;inset:0;background:rgba(20,18,16,.42)}
+.pilih-lembar{
+  position:relative;width:100%;background:var(--white);
+  border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+  box-shadow:0 -12px 32px rgba(0,0,0,.18);
+}
+.pilih-lembar h2{
+  font-family:var(--display);font-weight:400;font-size:20px;margin:0 0 10px;color:var(--ink);
+}
+.pilih-opsi{
+  display:flex;align-items:center;gap:12px;width:100%;min-height:56px;
+  padding:0 14px;margin-bottom:8px;
+  border:1px solid var(--line-strong);border-radius:12px;background:var(--white);color:var(--ink);
+  font:inherit;font-size:14px;font-weight:700;text-align:left;cursor:pointer;
+}
+.pilih-opsi:active{transform:scale(.99);background:#F7F3EC}
+.pilih-batal{
+  width:100%;min-height:48px;border:0;background:none;color:var(--ink-soft);
+  font:inherit;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;cursor:pointer;
+}

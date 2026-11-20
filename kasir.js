@@ -1089,6 +1089,21 @@ async function pindaiStruk(file) {
   }
 }
 
+/* ---------- lembar pilihan sumber foto ---------- */
+
+function bukaPilihFoto() {
+  const el = $("#pilih-foto");
+  if (!el) return;
+  el.hidden = false;
+  const pertama = $("#pilih-kamera");
+  if (pertama) pertama.focus();
+}
+
+function tutupPilihFoto() {
+  const el = $("#pilih-foto");
+  if (el) el.hidden = true;
+}
+
 /* ---------- interaksi ---------- */
 
 document.addEventListener("click", e => {
@@ -1109,7 +1124,11 @@ document.addEventListener("click", e => {
     return;
   }
 
-  if (e.target.id === "pindai") { const f = $("#pindai-file"); if (f) f.click(); return; }
+  const pindaiBtn = e.target.closest && e.target.closest("#pindai");
+  if (pindaiBtn) { bukaPilihFoto(); return; }
+  if (e.target.closest && e.target.closest("#pilih-kamera")) { tutupPilihFoto(); $("#pindai-kamera").click(); return; }
+  if (e.target.closest && e.target.closest("#pilih-galeri")) { tutupPilihFoto(); $("#pindai-galeri").click(); return; }
+  if (e.target.closest && e.target.closest("#pilih-tutup, #pilih-batal")) { tutupPilihFoto(); return; }
   if (e.target.id === "buka-tiket") { bukaTiket(); return; }
   if (e.target.closest("#buka-hari")) { bukaHariIni(); return; }
   if (e.target.closest("#hari-kembali")) { tutupHariIni(); return; }
@@ -1143,11 +1162,17 @@ hitungSisa();
 kirimAntrean();
 muatHariIni();
 
-const pindaiFile = $("#pindai-file");
-if (pindaiFile) pindaiFile.addEventListener("change", e => {
-  const f = e.target.files && e.target.files[0];
-  e.target.value = "";                 // supaya foto yang sama bisa dipindai lagi
-  if (f) pindaiStruk(f);
+for (const sel of ["#pindai-kamera", "#pindai-galeri"]) {
+  const inp = $(sel);
+  if (inp) inp.addEventListener("change", e => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = "";               // supaya foto yang sama bisa dipindai lagi
+    if (f) pindaiStruk(f);
+  });
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") tutupPilihFoto();
 });
 
 window.addEventListener("online", () => { kirimAntrean(); muatHariIni(); });
