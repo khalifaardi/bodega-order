@@ -131,6 +131,16 @@ function decItem(id) {
   paint();
 }
 
+// dipakai tombol −/+ dan Hapus di lembar tiket: hasil OCR kerap salah angka,
+// jadi kasir harus bisa membetulkan jumlah tanpa keluar dari lembar ini
+function ubahQty(key, delta) {
+  const l = state.cart.get(key);
+  if (!l) return;
+  l.qty = Math.min(99, (Number(l.qty) || 0) + delta);
+  if (l.qty <= 0) state.cart.delete(key);
+  paint(); renderTiket();
+}
+
 function paint() {
   renderDaftar();
   $("#total").textContent = rupiah(total());
@@ -216,6 +226,12 @@ function renderTiket() {
       <div class="n">${l.qty} × ${namaBaris(l)}</div>
       <div class="t">${angka(unit(l) * l.qty)}</div>
       ${(l.tops || []).length ? `<div class="opsi">${(l.tops || []).map(id => (ITEM_MAP.get(id) || {}).nama).join(" · ")}</div>` : ""}
+      <div class="atur">
+        <button type="button" data-qty="-1" data-key="${key}" aria-label="Kurangi jumlah">−</button>
+        <span class="qty">${l.qty}</span>
+        <button type="button" data-qty="1" data-key="${key}" aria-label="Tambah jumlah">+</button>
+        <button type="button" class="hapus" data-hapus="${key}">Hapus</button>
+      </div>
     </div>`).join("");
 
   const kotak = $("#tiket-lines");
@@ -258,9 +274,8 @@ function bukaTiket() {
       </div>
 
       <div class="field" id="field-meja">
-        <label for="meja">Nomor meja <span class="wajib">wajib</span></label>
+        <label for="meja">Nomor meja <span class="wajib">opsional</span></label>
         <input id="meja" type="text" inputmode="numeric" placeholder="mis. 4" autocomplete="off">
-        <div class="err" id="meja-err">Isi nomor meja dulu.</div>
       </div>
 
       <div class="field">
@@ -329,7 +344,7 @@ function bukaTiket() {
   toggleLain();
 
   // galat hilang begitu kolom wajib diisi
-  [["#meja", "#field-meja", "#meja-err"], ["#noref", "#field-noref", "#noref-err"],
+  [["#noref", "#field-noref", "#noref-err"],
    ["#sumber-lain", "#field-sumber-lain", "#sumber-lain-err"]].forEach(([i, f, e]) => {
     const el = $(i);
     el.addEventListener("input", () => {
@@ -479,9 +494,6 @@ async function simpanPesanan() {
   };
 
   wajib("#field-tipe", "#tipe-err", !!state.tipe);
-  if (state.tipe === "dinein") {
-    wajib("#field-meja", "#meja-err", !!($("#meja").value || "").trim());
-  }
   wajib("#field-noref", "#noref-err", !!($("#noref").value || "").trim());
   // kalau kasir memilih "Lainnya", teksnya ikut wajib — label saja tidak bisa ditindaklanjuti
   if ((($("#sumber-kasir") || {}).value || "") === "Lainnya") {
@@ -981,7 +993,7 @@ function ringkasStruk() {
   if (!s.cocok.length && !s.gagal.length) {
     keluar.push(`<div class='baca-warn'>Tidak ada baris pesanan yang terbaca dari foto ini.</div>`);
   }
-  keluar.push(`<div>Periksa jumlah dan nomor meja — OCR bisa salah baca angka.</div>`);
+  keluar.push(`<div>Periksa jumlah di daftar bawah — OCR bisa salah baca angka. Ubah dengan − / + atau Hapus kalau menunya keliru.</div>`);
   if (s.teks) {
     const aman = s.teks.replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
     keluar.push(`<details><summary>Teks mentah OCR</summary><pre>${aman}</pre></details>`);
@@ -1124,6 +1136,10 @@ document.addEventListener("click", e => {
     return;
   }
 
+  const qtyBtn = e.target.closest && e.target.closest("[data-qty]");
+  if (qtyBtn) { ubahQty(qtyBtn.dataset.key, Number(qtyBtn.dataset.qty)); return; }
+  const hapusBtn = e.target.closest && e.target.closest("[data-hapus]");
+  if (hapusBtn) { state.cart.delete(hapusBtn.dataset.hapus); paint(); renderTiket(); return; }
   const pindaiBtn = e.target.closest && e.target.closest("#pindai");
   if (pindaiBtn) { bukaPilihFoto(); return; }
   if (e.target.closest && e.target.closest("#pilih-kamera")) { tutupPilihFoto(); $("#pindai-kamera").click(); return; }

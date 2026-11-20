@@ -230,10 +230,12 @@ header.kasir{
 }
 .wa-wrap:focus-within{outline:2px solid var(--ink);outline-offset:1px}
 
-/* aksi selalu di jangkauan ibu jari, tidak perlu menggulir daftar topping */
+/* aksi selalu di jangkauan ibu jari, tidak perlu menggulir daftar topping.
+   Margin negatif menembus padding sheet supaya bilah ini penuh ke tepi —
+   tanpa itu, isi formulir terlihat di sela 16px kiri-kanan tombol. */
 .lembar-aksi{
-  position:sticky;bottom:0;margin-top:16px;
-  padding:12px 0 calc(14px + env(safe-area-inset-bottom));
+  position:sticky;bottom:0;margin:16px -16px 0;
+  padding:12px 16px calc(14px + env(safe-area-inset-bottom));
   background:var(--white);border-top:1px solid var(--line);
   box-shadow:0 -10px 24px rgba(0,0,0,.06);
 }
@@ -392,4 +394,23 @@ body.lihat-hari .bar-kasir{display:none}
 .pilih-batal{
   width:100%;min-height:48px;border:0;background:none;color:var(--ink-soft);
   font:inherit;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;cursor:pointer;
+}
+
+/* ---------- atur jumlah per baris di lembar tiket ---------- */
+.baris-tiket{grid-template-columns:1fr auto}
+.baris-tiket .atur{
+  grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:8px;
+}
+.baris-tiket .atur button{
+  min-width:40px;min-height:38px;padding:0 12px;
+  border:1px solid var(--line-strong);border-radius:8px;background:var(--white);
+  font:inherit;font-size:15px;font-weight:700;color:var(--ink);cursor:pointer;
+}
+.baris-tiket .atur button:active{transform:scale(.96);background:#F7F3EC}
+.baris-tiket .atur .qty{
+  min-width:26px;text-align:center;font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;
+}
+.baris-tiket .atur .hapus{
+  margin-left:auto;min-height:38px;padding:0 12px;
+  font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--red);
 }
