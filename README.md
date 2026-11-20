@@ -312,6 +312,40 @@ membatasi frekuensi, dan karena itu poller berhenti saat tab disembunyikan.
 Pesanan tetap dikirim ke WhatsApp walau pencatatan gagal — yang gagal disimpan di perangkat
 pelanggan dan dicoba ulang saat halaman dibuka lagi.
 
+## Pindai struk Sanang (OCR di perangkat, tanpa server)
+
+Kasir bisa memfoto struk POS Sanang dan mengisi tiket dari foto itu. Yang terbaca:
+nomor struk (`#02-418` → `no_ref`), nama tamu (baris di bawah nomor, apa adanya),
+waktu struk, jenis pesanan (Dine In / Take Away), petugas + lantai (masuk `pesan`),
+dan tiap baris `N x Nama Item` yang dipetakan ke SKU menu.
+
+**Alat:** Tesseract.js + `eng.traineddata`, di-*vendor* di `vendor/tesseract/` (~5,9 MB,
+dimuat hanya saat tombol "Pindai struk" ditekan — bukan bagian dari muatan halaman).
+Tidak ada permintaan ke pihak ketiga, tidak ada API key, jalan offline setelah sekali muat.
+
+**Aturan yang tidak boleh dilanggar:** hasil OCR **tidak pernah** langsung tersimpan.
+Foto membuka lembar tiket yang sudah terisi, dengan ringkasan "Struk terbaca" berisi
+ref, waktu, dan tiap baris beserta persentase kecocokan; baris yang tidak cocok ditandai
+merah untuk dipilih manual. Kasir memeriksa jumlah (OCR kerap salah angka: contoh nyata
+`1 x` terbaca `4 x`), nomor meja, lalu menekan Simpan.
+
+Catatan teknis yang mahal kalau dilupakan:
+
+- **Potong ke kertas dulu.** Foto struk hampir selalu di atas meja ramai; tanpa crop,
+  Tesseract membaca pola meja stainless sebagai teks dan hasilnya sampah. `siapkanGambar()`
+  mencari kotak terang terbesar lalu memotongnya sebelum OCR.
+- **`tessedit_pageseg_mode: "4"`** (satu kolom) — mode otomatis membaca latar sebagai layout.
+- Jangan tambahkan autocontrast/upscale buta: percobaan itu justru membuat hasil lebih buruk
+  daripada gambar asli yang dipotong. Skala 1,6× setelah crop sudah cukup.
+- Pencocokan nama memakai Levenshtein 0–1; ambang terima 0,82 dan peringatan "cek" di bawah
+  0,90. "The Chicken Parml" (l untuk i) dan "Margherita chevaa" tetap cocok, jadi OCR tidak
+  perlu sempurna.
+- Tanggal struk bisa M/D atau D/M; `10/31/26` jelas M/D, format ambigu diperlakukan M/D.
+  **Waktu pesanan memakai jam struk**, bukan jam pindai — konsekuensinya pesanan struk lama
+  masuk ke tanggal itu di sheet, dan lembar tiket memperingatkan bila bukan hari ini.
+- Nama tamu diambil satu baris utuh (`Sassa M.12`) sesuai keputusan pemilik: `M.12` bukan
+  nomor meja, jadi **meja tetap harus diisi kasir** (validasi dine-in sudah mewajibkannya).
+
 ## Kasir di belakang Cloudflare Access
 
 `kasir.html` menulis uang: satu baris salah merusak rekonsiliasi dengan venue. `noindex`

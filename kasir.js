@@ -27,7 +27,7 @@ SECTIONS.forEach(s => { if (s.pizza) s.items.forEach(i => PIZZA_IDS.add(i.id)); 
 const ITEM_MAP = new Map();
 SECTIONS.forEach(s => s.items.forEach(i => ITEM_MAP.set(i.id, i)));
 
-const state = { tipe: "", cart: new Map(), tops: new Set(), cari: "", hari: null };   // tipe kosong: kasir wajib memilih
+const state = { tipe: "", cart: new Map(), tops: new Set(), cari: "", hari: null, struk: null, waktuStruk: "" };   // tipe kosong: kasir wajib memilih
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -241,6 +241,8 @@ function bukaTiket() {
     <h2 id="panel-judul">Pesanan</h2>
     <p class="sub">${state.cart.size} baris</p>
 
+    ${ringkasStruk()}
+
     <div id="tiket-lines" style="margin-top:6px"></div>
     <div class="total-baris kecil" id="tiket-kemasan-row"><span>Kemasan</span><span id="tiket-kemasan">0</span></div>
     <div class="total-baris"><span>Total</span><span id="tiket-total">Rp0</span></div>
@@ -290,6 +292,11 @@ function bukaTiket() {
         <label for="sumber-lain">Dari mana? Tulis sendiri <span class="wajib">wajib</span></label>
         <input id="sumber-lain" type="text" maxlength="60" placeholder="mis. undangan teman, TikTok kakak" autocomplete="off">
         <div class="err" id="sumber-lain-err">Tulis dari mana tamu tahu Bodega.</div>
+      </div>
+
+      <div class="field">
+        <label for="pesan-kasir">Catatan (opsional)</label>
+        <input id="pesan-kasir" type="text" maxlength="120" placeholder="mis. Sanang: Wulan · Lantai 2" autocomplete="off">
       </div>
 
     </div>
@@ -434,7 +441,7 @@ function kumpulkan() {
     .map(l => `${l.qty}x ${namaBaris(l)} = ${unit(l) * l.qty}`).join("; ");
 
   return {
-    waktu: waktuLokal(new Date()),
+    waktu: state.waktuStruk || waktuLokal(new Date()),   // struk: pakai jam struk, bukan jam pindai
     order_id: orderId(),
     kanal: "kasir",
     tipe: state.tipe,
@@ -454,7 +461,7 @@ function kumpulkan() {
     kemasan: kemasan(),
     total: total(),
     item_detail: detail,
-    pesan: "",
+    pesan: v("#pesan-kasir"),
   };
 }
 
@@ -511,6 +518,8 @@ async function simpanPesanan() {
   if (!sinkron) antre(data);
 
   state.cart.clear();
+  state.struk = null;
+  state.waktuStruk = "";
   paint();
   layarSelesai(nomor, sinkron);
   muatHariIni();
@@ -804,6 +813,282 @@ function paintHariIsi() {
     `<p class="sub" style="margin-top:26px">Belum ada pesanan hari ini.</p>`;
 }
 
+/* ============================================================
+   PINDAI STRUK SANANG — OCR di perangkat, tanpa server
+
+   Alur: foto struk -> Tesseract.js (vendored, dimuat saat tombol ditekan) ->
+   bacaStruk() mengambil ref/nama/waktu/tipe/baris item -> cocokkan() memetakan
+   nama item ke SKU menu -> lembar tiket terbuka TERISI TAPI BELUM TERSIMPAN.
+
+   Yang tidak boleh dilanggar: hasil OCR tidak pernah langsung disimpan. Angka
+   pada struk termal mudah salah baca (contoh nyata: "1 x" terbaca "4 x"), jadi
+   kasir selalu memeriksa jumlah, meja, dan total sebelum menekan Simpan.
+   ============================================================ */
+
+const OCR_ASET = {
+  utama: "vendor/tesseract/tesseract.min.js",
+  worker: "vendor/tesseract/worker.min.js",
+  core: "vendor/tesseract/",
+  lang: "vendor/tesseract/",
+};
+
+let ocrWorker = null;
+
+function statusPindai(t) {
+  const el = $("#pindai-status");
+  if (el) el.textContent = t || "";
+}
+
+async function muatTesseract() {
+  if (window.Tesseract) return window.Tesseract;
+  await new Promise((ok, gagal) => {
+    const sc = document.createElement("script");
+    sc.src = OCR_ASET.utama;
+    sc.onload = ok;
+    sc.onerror = () => gagal(new Error("berkas OCR tidak bisa dimuat"));
+    document.head.appendChild(sc);
+  });
+  return window.Tesseract;
+}
+
+async function siapkanWorker(kabar) {
+  if (ocrWorker) return ocrWorker;
+  const T = await muatTesseract();
+  ocrWorker = await T.createWorker("eng", 1, {
+    workerPath: OCR_ASET.worker,
+    corePath: OCR_ASET.core,
+    langPath: OCR_ASET.lang,
+    logger: m => { if (m && m.status === "recognizing text" && kab) kab(m.progress || 0); },
+  });
+  return ocrWorker;
+}
+
+/* ---------- baca teks struk (fungsi murni, bisa diuji tanpa kamera) ---------- */
+
+function normStruk(t) {
+  return String(t || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// 0..1, Levenshtein dinormalkan
+function rasioMirip(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const m = a.length, n = b.length;
+  let prev = new Array(n + 1), cur = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    cur[0] = i;
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    const t = prev; prev = cur; cur = t;
+  }
+  return 1 - prev[n] / Math.max(m, n);
+}
+
+function cocokkan(nama) {
+  const n = normStruk(nama).replace(/\bbodega\b/g, "").trim();
+  let best = null, skor = 0;
+  for (const it of ITEM_MAP.values()) {
+    if (!it || !it.nama) continue;
+    const s = rasioMirip(n, normStruk(it.nama).replace(/\bbodega\b/g, "").trim());
+    if (s > skor) { skor = s; best = it; }
+  }
+  return { item: skor >= 0.82 ? best : null, skor };
+}
+
+function isoDariStruk(a, b, th, jam, menit) {
+  let n1 = Number(a), n2 = Number(b);
+  let hari, bulan;
+  if (n2 > 12) { bulan = n1; hari = n2; }          // M/D  (contoh struk: 10/31/26)
+  else if (n1 > 12) { hari = n1; bulan = n2; }     // D/M
+  else { bulan = n1; hari = n2; }                  // ambigu: ikut contoh struk (M/D)
+  let tahun = Number(th);
+  if (tahun < 100) tahun += 2000;
+  const dt = new Date(tahun, bulan - 1, hari, Number(jam), Number(menit), 0);
+  if (isNaN(dt.getTime()) || dt.getMonth() !== bulan - 1) return "";
+  return waktuLokal(dt);
+}
+
+function bacaStruk(teks) {
+  const h = { no_ref: "", nama: "", tipe: "", waktu: "", petugas: "", lantai: "", items: [], sisa: [] };
+  const garis = String(teks || "")
+    .split("\n")
+    .map(l => l.replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim())
+    .filter(l => l && !/^[.\-–—·\s]+$/.test(l));
+
+  const reRef  = /\b(\d{2})\s*-\s*(\d{3})\b/;
+  const reTgl  = /\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2})[:.](\d{2})\b/;
+  const reStaf = /^([A-Za-z][A-Za-z .'-]{1,24}),?\s*lant[a-z]*\s*(\d+)\s*$/i;
+  // jangan ditambatkan di awal baris: OCR kerap menempelkan sisa karakter di depan ("7/2) 1xThe …")
+  const reItem = /(?:^|[^0-9])(\d{1,2})\s*[x×*]\s*([A-Za-z][^|]*)$/i;
+
+  for (const b of garis) {
+    let m;
+    if (!h.no_ref && (m = b.match(reRef))) { h.no_ref = m[1] + "-" + m[2]; continue; }
+    if (!h.waktu && (m = b.match(reTgl))) { h.waktu = isoDariStruk(m[1], m[2], m[3], m[4], m[5]); continue; }
+    if ((m = b.match(reStaf))) { h.petugas = m[1].replace(/[.,]+$/, "").trim(); h.lantai = m[2]; continue; }
+    if (!h.tipe && /dine\s*in/i.test(b)) { h.tipe = "dinein"; continue; }
+    if (!h.tipe && /(take\s*away|dibawa|bawa pulang)/i.test(b)) { h.tipe = "bawa"; continue; }
+    if ((m = b.match(reItem))) {
+      const nm = m[2]
+        .replace(/\s*bodega\s*$/i, "")
+        .replace(/[\s=\u2014\u2013\-|]+$/, "")
+        .trim();
+      h.items.push({ qty: Math.min(99, Number(m[1]) || 1), nama: nm });
+      continue;
+    }
+    if (!h.nama && h.no_ref) { h.nama = b; continue; }
+    h.sisa.push(b);
+  }
+  return h;
+}
+
+/* ---------- terapkan hasil baca ke lembar tiket ---------- */
+
+const jamStruk = iso => {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const p = n => String(n).padStart(2, "0");
+  const bln = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+  return `${d.getDate()} ${bln[d.getMonth()]} ${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
+function ringkasStruk() {
+  const s = state.struk;
+  if (!s) return "";
+  const keluar = [];
+  keluar.push(`<b>Struk terbaca</b> · ref ${s.no_ref || "<span class='baca-warn'>tidak terbaca</span>"}`);
+  if (s.waktu) {
+    const hariIni = (state.__hariIni || "");
+    const beda = hariIni && hariIni !== s.waktu.slice(0, 10);
+    keluar.push(`<div>Waktu struk: ${jamStruk(s.waktu)}${beda ? " <span class='baca-warn'>(bukan hari ini — pesanan tercatat di tanggal itu)</span>" : ""}</div>`);
+  }
+  if (s.cocok.length) {
+    keluar.push(`<ul>${s.cocok.map(c =>
+      `<li>${c.qty} × ${c.item.nama}${c.skor < 0.90 ? ` <span class='baca-warn'>(kecocokan ${Math.round(c.skor * 100)}% — cek)</span>` : ""}</li>`
+    ).join("")}</ul>`);
+  }
+  if (s.gagal.length) {
+    keluar.push(`<ul>${s.gagal.map(g =>
+      `<li class='baca-warn'>${g.qty} × ${g.nama} — belum cocok, tambahkan manual</li>`
+    ).join("")}</ul>`);
+  }
+  if (!s.cocok.length && !s.gagal.length) {
+    keluar.push(`<div class='baca-warn'>Tidak ada baris pesanan yang terbaca dari foto ini.</div>`);
+  }
+  keluar.push(`<div>Periksa jumlah dan nomor meja — OCR bisa salah baca angka.</div>`);
+  if (s.teks) {
+    const aman = s.teks.replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+    keluar.push(`<details><summary>Teks mentah OCR</summary><pre>${aman}</pre></details>`);
+  }
+  return `<div class="baca">${keluar.join("")}</div>`;
+}
+
+function terapkanStruk(h) {
+  state.cart.clear();
+  state.tops = new Set();
+
+  const cocok = [], gagal = [];
+  for (const it of h.items) {
+    const c = cocokkan(it.nama);
+    if (!c.item) { gagal.push(it); continue; }
+    const key = `${c.item.id}|`;
+    const ada = state.cart.get(key);
+    state.cart.set(key, {
+      id: c.item.id, nama: c.item.nama, harga: c.item.harga,
+      tops: [], picks: false, qty: (ada ? ada.qty : 0) + it.qty,
+    });
+    cocok.push({ qty: it.qty, nama: it.nama, item: c.item, skor: c.skor });
+  }
+
+  const d = new Date();
+  state.__hariIni = waktuLokal(d).slice(0, 10);
+  state.struk = { no_ref: h.no_ref, nama: h.nama, waktu: h.waktu, petugas: h.petugas, lantai: h.lantai, teks: h.teks, cocok, gagal };
+  state.waktuStruk = h.waktu || "";
+
+  bukaTiket();
+  if (h.tipe) setTipe(h.tipe);
+
+  const nama = $("#nama"); if (nama) nama.value = h.nama || "";
+  const ref = $("#noref"); if (ref) ref.value = h.no_ref || "";
+  const cat = $("#pesan-kasir");
+  if (cat && (h.petugas || h.lantai)) {
+    cat.value = `Sanang: ${h.petugas || "?"}${h.lantai ? " · Lantai " + h.lantai : ""}`;
+  }
+  paint();
+}
+
+// Foto struk hampir selalu diambil di atas meja/meja stainless: latar ramai itu
+// membuat Tesseract membaca pola di meja sebagai teks. Potong ke kotak kertas dulu.
+async function siapkanGambar(file) {
+  const bmp = await createImageBitmap(file);
+  const skala = Math.min(1, 900 / Math.max(bmp.width, bmp.height));
+  const w = Math.max(1, Math.round(bmp.width * skala));
+  const h = Math.max(1, Math.round(bmp.height * skala));
+  const kanvas = document.createElement("canvas");
+  kanvas.width = w; kanvas.height = h;
+  const ctx = kanvas.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(bmp, 0, 0, w, h);
+
+  const px = ctx.getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = 0, y1 = 0, terang = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const g = px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114;
+      if (g > 150) {
+        terang++;
+        if (x < x0) x0 = x; if (x > x1) x1 = x;
+        if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }
+    }
+  }
+
+  let sx = 0, sy = 0, sw = w, sh = h;
+  if (terang > w * h * 0.05) {              // ada area terang besar: anggap itu kertas
+    const mx = Math.round((x1 - x0) * 0.03);
+    const my = Math.round((y1 - y0) * 0.03);
+    sx = Math.max(0, x0 - mx);
+    sy = Math.max(0, y0 - my);
+    sw = Math.min(w - sx, x1 - x0 + 2 * mx);
+    sh = Math.min(h - sy, y1 - y0 + 2 * my);
+  }
+
+  const out = document.createElement("canvas");
+  out.width = Math.round(sw * 1.6);
+  out.height = Math.round(sh * 1.6);
+  const octx = out.getContext("2d");
+  octx.imageSmoothingQuality = "high";
+  octx.drawImage(kanvas, sx, sy, sw, sh, 0, 0, out.width, out.height);
+  return out;
+}
+
+async function pindaiStruk(file) {
+  const btn = $("#pindai");
+  if (btn) btn.disabled = true;
+  try {
+    statusPindai("Membaca struk… 0%");
+    const w = await siapkanWorker(p => statusPindai(`Membaca struk… ${Math.round(p * 100)}%`));
+    await w.setParameters({ tessedit_pageseg_mode: "4" });   // satu kolom teks, seperti struk
+    const gambar = await siapkanGambar(file);
+    const { data } = await w.recognize(gambar);
+    const teks = (data && data.text) || "";
+    const h = bacaStruk(teks);
+    h.teks = teks;
+    terapkanStruk(h);
+    statusPindai("");
+  } catch (e) {
+    statusPindai("Gagal membaca struk: " + ((e && e.message) || e));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 /* ---------- interaksi ---------- */
 
 document.addEventListener("click", e => {
@@ -824,6 +1109,7 @@ document.addEventListener("click", e => {
     return;
   }
 
+  if (e.target.id === "pindai") { const f = $("#pindai-file"); if (f) f.click(); return; }
   if (e.target.id === "buka-tiket") { bukaTiket(); return; }
   if (e.target.closest("#buka-hari")) { bukaHariIni(); return; }
   if (e.target.closest("#hari-kembali")) { tutupHariIni(); return; }
@@ -856,6 +1142,13 @@ setInterval(jam, 30000);
 hitungSisa();
 kirimAntrean();
 muatHariIni();
+
+const pindaiFile = $("#pindai-file");
+if (pindaiFile) pindaiFile.addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";                 // supaya foto yang sama bisa dipindai lagi
+  if (f) pindaiStruk(f);
+});
 
 window.addEventListener("online", () => { kirimAntrean(); muatHariIni(); });
 document.addEventListener("visibilitychange", () => {
