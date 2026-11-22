@@ -16,6 +16,14 @@ const angka  = n => n.toLocaleString("id-ID");
 const cart = new Map();          // key -> { id, nama, harga, tops: [], qty }
 const state = { mode: "reservasi", sumber: "", sumberLain: "" };
 
+// Pembungkus pelacakan: halaman harus tetap jalan kalau track.js gagal dimuat.
+const lacak = (ev, props) => {
+  try { if (typeof TRACK !== "undefined") TRACK.track(ev, props); } catch (e) {}
+};
+const lacakSekali = (ev, kunci, props) => {
+  try { if (typeof TRACK !== "undefined") TRACK.sekali(ev, kunci, props); } catch (e) {}
+};
+
 /* ---------------- menu ---------------- */
 
 function renderMenu() {
@@ -151,6 +159,11 @@ function addToCart(id, qty, tops) {
     id, nama: item.nama, harga: item.harga, tops: list,
     picks: !!item.pilih, qty: add,
   });
+  lacak("add_to_cart", {
+    id, nama: item.nama, qty: add,
+    nilai: add * lineUnit(cart.get(key)),
+    tops: list.length,
+  });
   paint();
 }
 
@@ -197,6 +210,37 @@ const grandTotal = () => cartTotal() + boxFee() + Math.max(0, SHOP.ongkir || 0);
 function syncBar() {
   const inMenu = !$("#view-menu").classList.contains("hidden");
   $("#bar").classList.toggle("show", cartCount() > 0 && inMenu);
+  syncFab();
+}
+
+/* ---------------- tombol WhatsApp mengambang ----------------
+   Ikon hanya tampil di halaman menu: halaman pesanan dan halaman selesai
+   sudah punya tombol WhatsApp selebar layar, jadi ikon tambahan di sana
+   hanya menghalangi tombol yang harus ditekan.
+   --fab-lift dinaikkan setinggi bilah bawah yang sedang tampil, sehingga
+   ikon tidak pernah menutupi tombol "Continue" atau "Confirm on WhatsApp". */
+function syncFab() {
+  const fab = $("#wa-fab");
+  if (!fab) return;
+
+  const diMenu = !$("#view-menu").classList.contains("hidden");
+  const adaSheet = $("#modal").classList.contains("open")
+    || ($("#chooser") && $("#chooser").classList.contains("open"));
+  const tampil = diMenu && !adaSheet;
+  fab.hidden = !tampil;
+  if (!tampil) return;
+
+  let lift = 0;
+  for (const sel of ["#bar", ".done-bar"]) {
+    const el = $(sel);
+    if (!el) continue;
+    const cs = getComputedStyle(el);
+    if (cs.position !== "fixed" || cs.display === "none" || cs.visibility === "hidden") continue;
+    const r = el.getBoundingClientRect();
+    if (r.height < 1 || r.top >= window.innerHeight) continue;   // bilah sedang tidak terlihat
+    lift = Math.max(lift, Math.round(window.innerHeight - r.top) + 12);
+  }
+  document.documentElement.style.setProperty("--fab-lift", lift + "px");
 }
 
 function paint() {
@@ -703,6 +747,17 @@ async function submit(ev) {
   const msg = buildMessage(id, v.phone);
   const data = payload(id, v.phone, msg);
 
+  lacak("place_order", {
+    order_id: id,
+    mode: state.mode,
+    total: data.total,
+    item: cartCount(),
+    kelompok: cart.size,
+    sumber: state.sumber,
+    // reservasi membuka WhatsApp sendiri saat pesanan dikirim
+    wa_otomatis: state.mode === "reservasi" ? 1 : 0,
+  });
+
   // Reservasi: WhatsApp dibuka langsung seperti sebelumnya.
   if (state.mode === "reservasi") {
     window.open(`https://wa.me/${SHOP.wa}?text=${encodeURIComponent(msg)}`, "_blank");
@@ -819,6 +874,8 @@ function openChooser(id) {
   $("#chooser").classList.add("open");
   $("#chooser").setAttribute("aria-hidden", "false");
   document.body.classList.add("locked");
+  lacakSekali("view_item", id, { id, nama: item.nama, harga: item.harga, dari: "chooser" });
+  syncFab();
   $("#c-new").focus();
 }
 
@@ -826,6 +883,7 @@ function closeChooser() {
   $("#chooser").classList.remove("open");
   $("#chooser").setAttribute("aria-hidden", "true");
   document.body.classList.remove("locked");
+  syncFab();
 }
 
 function sheetTotal() {
@@ -935,6 +993,8 @@ function openItemSheet(id, key, split) {
   modal.classList.add("open");
   modal.setAttribute("aria-hidden", "false");
   document.body.classList.add("locked");
+  lacakSekali("view_item", it.id, { id: it.id, nama: it.nama, harga: it.harga });
+  syncFab();
   $("#m-close").focus();
 }
 
@@ -950,6 +1010,7 @@ function closeSheet() {
   sheetItem = null;
   editKey = null;
   editSplit = false;
+  syncFab();
   // kartu lama bisa sudah dibuang oleh render ulang menu
   if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
 }
@@ -1260,9 +1321,36 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 
-  on("#open-cart", "click", () => { buildPickupSlots(); show("#view-checkout"); });
+  // ---- funnel: "Continue" dari bilah keranjang = mulai checkout ----
+  let formMulai = false;
+  on("#open-cart", "click", () => {
+    buildPickupSlots();
+    formMulai = false;
+    lacak("begin_checkout", { item: cartCount(), kelompok: cart.size, nilai: grandTotal() });
+    show("#view-checkout");
+  });
   on("#back-menu", "click", () => show("#view-menu"));
   on("#order-form", "submit", submit);
+
+  // ---- funnel: "isi data" = kolom pertama di formulir yang benar-benar terisi ----
+  on("#order-form", "input", catatFormMulai);
+  on("#order-form", "change", catatFormMulai);
+  function catatFormMulai(e) {
+    if (formMulai) return;
+    const f = e.target;
+    if (!f || f.type === "radio" || f.type === "submit") return;   // cara ambil bukan "mengisi data"
+    if (!String(f.value || "").trim()) return;
+    formMulai = true;
+    lacak("form_start", { kolom: f.id || f.name || "" });
+  }
+
+  // ---- funnel: tombol konfirmasi WhatsApp di halaman akhir ----
+  on("#wa-link", "click", () => {
+    lacak("confirm_wa", {
+      order_id: $("#done-id") ? $("#done-id").textContent : "",
+      mode: state.mode,
+    });
+  });
 
   $$('input[name="mode"]').forEach(r =>
     r.addEventListener("change", () => setMode(r.value)));
@@ -1347,6 +1435,21 @@ document.addEventListener("DOMContentLoaded", () => {
   // tautan GrabFood: satu sumber kebenaran di SHOP.grab
   const grabLink = $("#grab-footer");
   if (grabLink && SHOP.grab) grabLink.href = SHOP.grab;
+
+  // ikon WhatsApp mengambang: nomor & pesan awal dari SHOP.wa
+  const fab = $("#wa-fab");
+  if (fab) {
+    fab.href = `https://wa.me/${SHOP.wa}?text=${encodeURIComponent("Hi Bodega! I'd like to ask about the menu.")}`;
+    fab.addEventListener("click", () => {
+      lacak("wa_fab", {
+        dari: $("#view-menu").classList.contains("hidden") ? "checkout" : "menu",
+        item: cartCount(),
+      });
+    });
+  }
+  syncFab();
+  addEventListener("resize", syncFab, { passive: true });
+  addEventListener("orientationchange", syncFab, { passive: true });
 
   renderUlasan();
 

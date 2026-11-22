@@ -312,6 +312,81 @@ membatasi frekuensi, dan karena itu poller berhenti saat tab disembunyikan.
 Pesanan tetap dikirim ke WhatsApp walau pencatatan gagal — yang gagal disimpan di perangkat
 pelanggan dan dicoba ulang saat halaman dibuka lagi.
 
+## Tombol WhatsApp mengambang
+
+Ikon bulat di kanan bawah (`#wa-fab` di `index.html`, gaya `.wa-fab` di `styles.css`). Nomor
+dan pesan awalnya diambil dari `SHOP.wa` di `menu.js`, jadi tidak ada nomor kedua yang perlu
+dirawat.
+
+Posisinya tidak tetap: `syncFab()` di `app.js` mengukur bilah bawah yang sedang tampil dan
+mengisi variabel `--fab-lift`. Bilah keranjang (`#bar`, 78 px) dan bilah halaman selesai
+(`.done-bar`) membuat ikon naik setinggi bilah itu + 12 px, jadi tombol **Continue** dan
+**Confirm on WhatsApp** tidak pernah tertutup. Diukur di 390×844: ikon berhenti 28 px di atas
+bilah keranjang.
+
+Ikon hanya muncul di halaman menu. Di halaman pesanan dan halaman selesai sudah ada tombol
+WhatsApp selebar layar; menambah ikon di sana hanya menghalangi tombol yang harus ditekan.
+Ikon juga disembunyikan selama sheet detail produk atau dialog "sudah ada di pesanan" terbuka.
+
+## Pelacakan: asal pengunjung & funnel
+
+`track.js` mengirim satu baris per kejadian ke endpoint Apps Script yang sama dengan pesanan
+(`LOG_ENDPOINT`), ke tab **`Kejadian`** — bukan ke layanan pihak ketiga, jadi tidak ada cookie
+iklan dan tidak ada data pribadi. Yang disimpan hanya id acak (`sid` per sesi, `vid` per
+perangkat), asal kunjungan, dan nama kejadian.
+
+| Kejadian | Kapan dikirim |
+|---|---|
+| `page_view` | halaman dibuka (sekali per pemuatan, tidak saat bfcache) |
+| `view_item` | detail produk dibuka (sekali per produk per sesi) |
+| `add_to_cart` | produk masuk keranjang |
+| `begin_checkout` | tombol **Continue** di bilah keranjang |
+| `form_start` | kolom pertama di formulir pesanan terisi (bukan pilihan radio) |
+| `place_order` | pesanan lolos validasi dan dibuat |
+| `confirm_wa` | tombol konfirmasi WhatsApp di halaman akhir ditekan |
+| `wa_fab` | ikon WhatsApp mengambang ditekan |
+| `session_end` | halaman ditinggalkan (lama kunjungan, dikirim lewat `sendBeacon`) |
+
+`kanal_asal` ditentukan sekali per sesi: `utm_source` kalau ada, lalu `?dari=…` (tautan lama),
+lalu host referrer, dan `Direct` kalau tidak ada jejak. Pemetaan nama: `ig`/`instagram` →
+Instagram, `fb` → Facebook, `x`/`t.co` → X, `tt` → TikTok, `wa` → WhatsApp, `g`/`gclid` →
+Google, `grab` → GrabFood.
+
+**Dasbor:** `dasbor.html` menampilkan pengunjung, sesi, pesanan, konfirmasi, omzet, funnel
+tujuh langkah, asal kunjungan, produk paling dilihat, dan angka per hari. Rentang tanggal bisa
+diubah (1/7/30 hari). Halaman ini membaca `?action=analitik` lewat JSONP — Apps Script tidak
+mengirim header CORS, jadi `fetch` biasa akan gagal.
+
+Setelah `tools/catat.gs` diperbarui, **wajib deploy ulang** (Deploy → Manage deployments → ✏️
+→ Version: New version). Selama belum, kejadian ditolak dengan `order_id kosong` dan tidak
+tersimpan — pesanan tetap jalan normal. Periksa dengan:
+
+```bash
+curl -s "<URL-EXEC>?action=info&key=<RAHASIA>"
+curl -s "<URL-EXEC>?action=kejadian&batas=5&key=<RAHASIA>"
+curl -s "<URL-EXEC>?action=analitik&dari=2026-11-20&sampai=2026-11-22&key=<RAHASIA>"
+```
+
+Tautan yang dilacak (ganti `bodega-pizzeria.shop` sesuai kanal):
+
+```
+https://bodega-pizzeria.shop/?utm_source=instagram&utm_medium=bio
+https://bodega-pizzeria.shop/?utm_source=whatsapp&utm_medium=chat
+https://bodega-pizzeria.shop/?utm_source=grab&utm_medium=menu
+```
+
+Batasannya: kiriman bersifat *fire-and-forget* (`mode: "no-cors"`, `keepalive`) — kalau jaringan
+putus tepat saat kejadian, baris itu hilang, dan itu disengaja: pelacakan tidak boleh menahan
+pesanan. Tab `Kejadian` tumbuh satu baris per kejadian (±8 baris per kunjungan); `analitik`
+hanya membaca 20.000 baris terakhir dan menandai `terpotong: true` kalau terlewati — arsipkan
+tab itu setiap beberapa bulan. `sid` disimpan di `sessionStorage`; kunjungan tanpa tanda apa pun
+memakai sumber yang tersimpan di sesi itu, sedangkan tautan bertanda yang baru selalu menimpa
+sumber lama (orang yang menekan tautan Instagram tercatat Instagram, bukan `Direct`).
+
+`dasbor.html` belum dibatasi akses seperti `kasir.html`; pasang aturan Cloudflare Access yang
+sama untuk `/dasbor.html` kalau angkanya tidak boleh publik. Yang tampil hanya agregat, bukan
+nama atau nomor pelanggan.
+
 ## Pindai struk Sanang (OCR di perangkat, tanpa server)
 
 Kasir bisa memfoto struk POS Sanang dan mengisi tiket dari foto itu. Yang terbaca:

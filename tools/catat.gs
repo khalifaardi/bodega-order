@@ -12,6 +12,12 @@
  *                   untuk (a) memastikan kiriman benar-benar sampai, dan
  *                   (b) menampilkan daftar hari ini yang sama di semua perangkat.
  *
+ * Pintu tambahan untuk pelacakan (track.js, dibaca dasbor.html):
+ *   doPost jenis='kejadian'  menambah baris di tab "Kejadian" — tidak menyentuh
+ *                            tab Pesanan dan tidak butuh order_id.
+ *   doGet action=analitik    ringkasan funnel + asal kunjungan.
+ *   doGet action=kejadian    N kejadian terakhir, untuk memeriksa pelacakan.
+ *
  * CARA PASANG
  *   1. Buat Google Sheet baru (mis. "Bodega — Pesanan").
  *   2. Extensions → Apps Script, hapus isinya, tempel berkas ini.
@@ -30,6 +36,7 @@
  */
 
 var TAB = 'Pesanan';
+var TAB_KEJADIAN = 'Kejadian';
 var TZ = 'Asia/Makassar';
 
 /** Kolom baru HARUS ditambahkan di ujung: baris lama tidak boleh bergeser. */
@@ -39,6 +46,17 @@ var KOLOM = [
   'pickup', 'tanggal', 'jam', 'pax', 'sumber', 'kasir',
   'total_menu', 'kemasan', 'total', 'item_detail', 'pesan',
   'nomor_antre', 'sumber_lain'
+];
+
+/**
+ * Tab kedua: satu baris per kejadian di halaman pesanan (page_view,
+ * view_item, add_to_cart, begin_checkout, form_start, place_order,
+ * confirm_wa, wa_fab, session_end). Tanpa nama/telepon — hanya id acak.
+ */
+var KOLOM_KEJADIAN = [
+  'waktu', 'tanggal', 'jam', 'ev', 'sid', 'vid',
+  'kanal_asal', 'ref', 'utm_source', 'utm_medium', 'utm_campaign',
+  'landing', 'item_id', 'order_id', 'nilai', 'url', 'layar', 'bahasa', 'props'
 ];
 
 /* ---------- tulis ---------- */
@@ -53,6 +71,13 @@ function doPost(e) {
   try {
     var data = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (!kunciCocok(data.key)) return out({ ok: false, error: 'kunci salah' });
+
+    // Kejadian funnel punya jalur sendiri: tidak menyentuh tab Pesanan dan
+    // tidak butuh order_id, supaya pelacakan tidak pernah mengganggu pesanan.
+    if (data.jenis === 'kejadian') {
+      return out(catatKejadian(data));
+    }
+
     if (!data.order_id) return out({ ok: false, error: 'order_id kosong' });
 
     var sh = sheet();
@@ -75,6 +100,39 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ---------- kejadian funnel ---------- */
+
+/** Tulis satu kejadian dari halaman pesanan. Dipanggil di dalam lock doPost. */
+function catatKejadian(d) {
+  if (!d.ev) return { ok: false, error: 'ev kosong' };
+  var sh = sheetKejadian();
+  var sekarang = new Date();
+  var props = d.props;
+
+  sh.appendRow([
+    d.waktu || '',
+    tanggalDari(d.waktu) || tanggalDari(sekarang),
+    jamDari(d.waktu) || jamDari(sekarang),
+    String(d.ev).slice(0, 40),
+    String(d.sid || ''),
+    String(d.vid || ''),
+    String(d.kanal_asal || ''),
+    String(d.ref || ''),
+    String(d.utm_source || ''),
+    String(d.utm_medium || ''),
+    String(d.utm_campaign || ''),
+    String(d.landing || ''),
+    String(d.item_id || ''),
+    String(d.order_id || ''),
+    Number(d.nilai) || '',
+    String(d.url || ''),
+    String(d.layar || ''),
+    String(d.bahasa || ''),
+    (props && typeof props === 'object') ? JSON.stringify(props) : String(props || '')
+  ]);
+  return { ok: true, ev: String(d.ev) };
 }
 
 /** Nomor urut berikutnya untuk tanggal itu. Dipanggil di dalam lock. */
@@ -102,6 +160,12 @@ function doGet(e) {
   var aksi = p.action || 'info';
   if (aksi === 'hariIni') {
     return balas(hariIni(p.tgl || tanggalDari(new Date())), p.callback);
+  }
+  if (aksi === 'analitik') {
+    return balas(analitik(p.dari || hariLalu(7), p.sampai || tanggalDari(new Date())), p.callback);
+  }
+  if (aksi === 'kejadian') {
+    return balas(kejadianTerakhir(p.batas), p.callback);
   }
   return balas({
     ok: true,
@@ -185,6 +249,196 @@ function jamDari(v) {
 
 function kunci() {
   return PropertiesService.getScriptProperties().getProperty('RAHASIA') || '';
+}
+
+/* ---------- ringkasan funnel (dibaca dasbor.html) ---------- */
+
+/** Tab kejadian, dibuat kalau belum ada (hanya saat menulis). */
+function sheetKejadian() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(TAB_KEJADIAN);
+  if (!sh) sh = ss.insertSheet(TAB_KEJADIAN);
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(KOLOM_KEJADIAN);
+    sh.setFrozenRows(1);
+    sh.getRange(1, 1, 1, KOLOM_KEJADIAN.length).setFontWeight('bold');
+  }
+  return sh;
+}
+
+/** Tab kejadian untuk dibaca; null kalau belum pernah ada kejadian. */
+function tabKejadian() {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TAB_KEJADIAN) || null;
+}
+
+function hariLalu(n) {
+  var d = new Date();
+  d.setDate(d.getDate() - (Math.max(1, Number(n) || 7) - 1));
+  return tanggalDari(d);
+}
+
+function uniq(obj) {
+  return Object.keys(obj).length;
+}
+
+/** Nama produk diambil dari props kejadian, supaya dasbor tidak menampilkan id saja. */
+function namaDariProps(props) {
+  try { return String(JSON.parse(String(props || '{}')).nama || ''); }
+  catch (e) { return ''; }
+}
+
+/**
+ * Ringkasan funnel + asal kunjungan untuk dasbor.
+ * dari/sampai: 'yyyy-MM-dd' inklusif. Sesi dihitung unik per langkah,
+ * jadi satu orang yang membuka dua produk tetap terhitung satu di langkah itu.
+ */
+function analitik(dari, sampai) {
+  var hasil = {
+    ok: true, dari: dari, sampai: sampai, baris: 0, terpotong: false,
+    kpi: { sesi: 0, orang: 0, pesanan: 0, omzet: 0, konfirmasi: 0, fab: 0, detik: 0 },
+    langkah: [], kanal: [], harian: [], produk: []
+  };
+  var sh = tabKejadian();
+  if (!sh) { hasil.pesan = 'Belum ada kejadian tercatat.'; return hasil; }
+
+  var last = sh.getLastRow();
+  if (last < 2) { hasil.pesan = 'Belum ada kejadian pada rentang ini.'; return hasil; }
+
+  var BATAS = 20000;                 // batas aman kuota Apps Script per permintaan
+  var mulai = 2, n = last - 1;
+  if (n > BATAS) { mulai = last - BATAS + 1; n = BATAS; hasil.terpotong = true; }
+
+  var vals = sh.getRange(mulai, 1, n, KOLOM_KEJADIAN.length).getValues();
+  var i = {};
+  KOLOM_KEJADIAN.forEach(function (k, idx) { i[k] = idx; });
+
+  var LANGKAH = ['page_view', 'view_item', 'add_to_cart', 'begin_checkout', 'form_start', 'place_order', 'confirm_wa'];
+  var langkah = {}, kanal = {}, kanalSesi = {}, orderSid = {}, harian = {}, produk = {};
+  var sesi = {}, orang = {}, nPergi = 0, detikTotal = 0;
+
+  for (var r = 0; r < vals.length; r++) {
+    var row = vals[r];
+    var tgl = tanggalDari(row[i.tanggal]) || tanggalDari(row[i.waktu]);
+    if (!tgl) continue;
+    if (dari && tgl < dari) continue;
+    if (sampai && tgl > sampai) continue;
+    hasil.baris += 1;
+
+    var ev = String(row[i.ev] || '');
+    var sid = String(row[i.sid] || '') || ('-' + r);      // kejadian tanpa id tetap dihitung
+    var vid = String(row[i.vid] || '') || sid;
+    var nilai = Number(row[i.nilai]) || 0;
+
+    sesi[sid] = 1;
+    orang[vid] = 1;
+
+    if (!harian[tgl]) harian[tgl] = { tgl: tgl, sesi: {}, pesanan: 0, omzet: 0, konfirmasi: 0 };
+    harian[tgl].sesi[sid] = 1;
+
+    if (!langkah[ev]) langkah[ev] = { n: 0, sesi: {} };
+    langkah[ev].n += 1;
+    langkah[ev].sesi[sid] = 1;
+
+    if (ev === 'page_view') {
+      // satu sesi bisa punya dua page_view (tanpa tanda, lalu lewat tautan
+      // bertanda); yang dipakai adalah yang terakhir, sama seperti di klien,
+      // supaya jumlah sesi per kanal tidak melebihi total sesi.
+      kanalSesi[sid] = String(row[i.kanal_asal] || 'Direct');
+    }
+
+    if (ev === 'place_order') {
+      hasil.kpi.pesanan += 1;
+      hasil.kpi.omzet += nilai;
+      harian[tgl].pesanan += 1;
+      harian[tgl].omzet += nilai;
+      if (!orderSid[sid]) orderSid[sid] = { n: 0, omzet: 0 };
+      orderSid[sid].n += 1;
+      orderSid[sid].omzet += nilai;
+    }
+
+    if (ev === 'confirm_wa') { hasil.kpi.konfirmasi += 1; harian[tgl].konfirmasi += 1; }
+    if (ev === 'wa_fab') hasil.kpi.fab += 1;
+
+    if (ev === 'session_end') {
+      var d = 0;
+      try { d = Number(JSON.parse(String(row[i.props] || '{}')).detik) || 0; } catch (e2) { d = 0; }
+      if (d > 0) { detikTotal += d; nPergi += 1; }
+    }
+
+    if (ev === 'view_item' || ev === 'add_to_cart') {
+      var iid = String(row[i.item_id] || '');
+      if (!iid && ev === 'add_to_cart') {
+        try { iid = String((JSON.parse(String(row[i.props] || '{}')).id) || ''); } catch (e3) {}
+      }
+      if (iid) {
+        if (!produk[iid]) produk[iid] = { id: iid, nama: iid, lihat: {}, cart: {} };
+        produk[iid][ev === 'view_item' ? 'lihat' : 'cart'][sid] = 1;
+        var nm = namaDariProps(row[i.props]);
+        if (nm) produk[iid].nama = nm;
+      }
+    }
+  }
+
+  hasil.kpi.sesi = uniq(sesi);
+  hasil.kpi.orang = uniq(orang);
+  hasil.kpi.detik = nPergi ? Math.round(detikTotal / nPergi) : 0;
+
+  hasil.langkah = LANGKAH.map(function (ev) {
+    var d = langkah[ev] || { n: 0, sesi: {} };
+    return { ev: ev, n: d.n, sesi: uniq(d.sesi) };
+  });
+
+  // Kanal dihitung setelah semua baris terbaca: sesi masuk ke kanal dari
+  // page_view terakhirnya, pesanan menyusul ke kanal yang sama.
+  Object.keys(kanalSesi).forEach(function (sid) {
+    var nama = kanalSesi[sid];
+    if (!kanal[nama]) kanal[nama] = { kanal: nama, sesi: {}, pesanan: 0, omzet: 0 };
+    kanal[nama].sesi[sid] = 1;
+  });
+  Object.keys(orderSid).forEach(function (sid) {
+    var nama = kanalSesi[sid] || 'Tak diketahui';
+    if (!kanal[nama]) kanal[nama] = { kanal: nama, sesi: {}, pesanan: 0, omzet: 0 };
+    kanal[nama].pesanan += orderSid[sid].n;
+    kanal[nama].omzet += orderSid[sid].omzet;
+  });
+
+  hasil.kanal = Object.keys(kanal).map(function (k) {
+    var d = kanal[k];
+    return { kanal: k, sesi: uniq(d.sesi), pesanan: d.pesanan, omzet: d.omzet };
+  }).sort(function (a, b) { return b.sesi - a.sesi; });
+
+  hasil.harian = Object.keys(harian).sort().map(function (t) {
+    var d = harian[t];
+    return { tgl: t, sesi: uniq(d.sesi), pesanan: d.pesanan, omzet: d.omzet, konfirmasi: d.konfirmasi };
+  });
+
+  hasil.produk = Object.keys(produk).map(function (id) {
+    var d = produk[id];
+    return { id: id, nama: d.nama, lihat: uniq(d.lihat), cart: uniq(d.cart) };
+  }).sort(function (a, b) {
+    return (b.lihat + b.cart) - (a.lihat + a.cart);
+  }).slice(0, 12);
+
+  return hasil;
+}
+
+/** Kejadian terakhir mentah — untuk memastikan pelacakan benar-benar masuk. */
+function kejadianTerakhir(batas) {
+  var sh = tabKejadian();
+  if (!sh) return { ok: true, baris: [] };
+  var last = sh.getLastRow();
+  if (last < 2) return { ok: true, baris: [] };
+
+  var n = Math.min(Math.max(Number(batas) || 50, 1), 200);
+  var mulai = Math.max(2, last - n + 1);
+  var vals = sh.getRange(mulai, 1, last - mulai + 1, KOLOM_KEJADIAN.length).getValues();
+
+  var baris = vals.map(function (row) {
+    var o = {};
+    KOLOM_KEJADIAN.forEach(function (k, idx) { o[k] = row[idx]; });
+    return o;
+  }).reverse();
+  return { ok: true, baris: baris };
 }
 
 /** Kalau RAHASIA belum diisi, endpoint sengaja dibiarkan terbuka saat awal pasang. */

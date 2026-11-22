@@ -116,6 +116,29 @@ section.menu-block{padding:30px 0 6px}
   letter-spacing:.1em;text-transform:uppercase;
 }
 
+/* ---------- tombol WhatsApp mengambang ----------
+   --fab-lift diisi track.js/app.js sesuai tinggi bilah bawah yang sedang
+   tampil (keranjang 78px, halaman selesai lebih tinggi), jadi ikon tidak
+   pernah menutupi tombol "Lanjut" atau "Konfirmasi lewat WhatsApp". */
+.wa-fab{
+  position:fixed;right:16px;
+  bottom:calc(16px + env(safe-area-inset-bottom) + var(--fab-lift,0px));
+  z-index:50;
+  width:54px;height:54px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--ink);color:var(--paper);
+  box-shadow:0 6px 18px rgba(0,0,0,.22),0 1px 2px rgba(0,0,0,.16);
+  transition:bottom .18s ease,background .15s ease,opacity .15s ease,transform .15s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.wa-fab svg{width:27px;height:27px;fill:currentColor;display:block}
+.wa-fab:hover{background:var(--accent)}
+.wa-fab:active{transform:scale(.94)}
+.wa-fab:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.wa-fab[hidden]{display:none}
+@media(min-width:640px){ .wa-fab{right:22px;width:58px;height:58px} .wa-fab svg{width:29px;height:29px} }
+@media(prefers-reduced-motion:reduce){ .wa-fab{transition:none} }
+
 /* ---------- forms ---------- */
 .field{margin-bottom:18px}
 .field label{

@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /dasbor.html
 
 Sitemap: https://bodega-pizzeria.shop/sitemap.xml

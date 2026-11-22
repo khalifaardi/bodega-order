@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Trafik &amp; funnel — Bodega Pizzeria</title>
+<meta name="theme-color" content="#FBF8F3">
+<link rel="icon" sizes="32x32" href="icon-32.png">
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="styles.css">
+<style>
+  body{padding-bottom:40px;background:var(--white)}
+  .dasbor header{padding:26px 0 10px;border-bottom:1px solid var(--line)}
+  .dasbor h1{
+    font-family:var(--display);font-weight:400;font-size:22px;margin:0;
+    letter-spacing:.01em;
+  }
+  .dasbor .sub{
+    margin:6px 0 0;color:var(--ink-soft);font-size:12.5px;line-height:1.5;max-width:62ch;
+  }
+  .dasbor .sub b{color:var(--ink);font-weight:700}
+
+  .filter{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:16px 0;border-bottom:1px solid var(--line)}
+  .filter label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:5px}
+  .filter input[type=date]{
+    font-family:var(--mono);font-size:13px;padding:8px 10px;border:1px solid var(--line-strong);
+    border-radius:8px;background:var(--white);color:var(--ink);
+  }
+  .filter .preset{display:flex;gap:6px;flex-wrap:wrap}
+  .filter .preset button{
+    background:var(--white);border:1px solid var(--line);color:var(--ink-soft);
+    font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;padding:8px 11px;border-radius:999px;
+  }
+  .filter .preset button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--white)}
+  .status{margin:0 0 0 auto;font-size:11.5px;color:var(--ink-soft);align-self:center}
+
+  .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:20px 0 0}
+  @media(min-width:760px){ .kpi{grid-template-columns:repeat(3,1fr)} }
+  @media(min-width:1040px){ .kpi{grid-template-columns:repeat(6,1fr)} }
+  .kpi div{background:var(--white);padding:14px 14px 12px}
+  .kpi .lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .kpi .val{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:3px;line-height:1.15}
+  .kpi .ket{font-size:10.5px;color:var(--ink-soft);margin-top:2px;line-height:1.4}
+
+  section.blok{padding:26px 0 0}
+  .h{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
+  .h h2{font-family:var(--display);font-weight:400;font-size:17px;margin:0}
+  .h .rule{flex:1;height:1px;background:var(--line-strong)}
+  .h .hint{font-size:11px;color:var(--ink-soft)}
+
+  .funnel{display:grid;gap:0;margin-top:10px}
+  .step{display:grid;grid-template-columns:150px 1fr 84px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line)}
+  @media(max-width:639px){ .step{grid-template-columns:104px 1fr 74px;gap:8px} }
+  .step .nm{font-size:12.5px;line-height:1.3}
+  .step .nm small{display:block;color:var(--ink-soft);font-size:10.5px;letter-spacing:.04em}
+  .step .track{background:var(--tint);border-radius:4px;height:26px;position:relative;overflow:hidden}
+  .step .fill{height:100%;background:var(--ink);border-radius:4px;min-width:2px;transition:width .3s ease}
+  .step.akhir .fill{background:var(--accent)}
+  .step .num{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
+  .step .pct{
+    grid-column:2/4;font-size:10.5px;color:var(--ink-soft);margin:-4px 0 0;
+    font-variant-numeric:tabular-nums;
+  }
+  @media(max-width:639px){ .step .pct{grid-column:1/4} }
+
+  .dua{display:grid;gap:26px}
+  @media(min-width:820px){ .dua{grid-template-columns:1fr 1fr} }
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+  th{text-align:left;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:0 8px 7px 0;border-bottom:1px solid var(--line-strong)}
+  td{padding:8px 8px 8px 0;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums}
+  td.kanan,th.kanan{text-align:right;padding-right:0}
+  tr.total td{font-weight:700;border-bottom:0}
+  .kosong{color:var(--ink-soft);font-size:12.5px;padding:14px 0}
+
+  .kaki{margin-top:34px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink-soft);font-size:11.5px;line-height:1.6}
+  .kaki code{font-size:11px;background:var(--tint);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body class="dasbor">
+
+<header>
+  <div class="wrap">
+    <h1>Trafik &amp; funnel</h1>
+    <p class="sub">Bodega Pizzeria · <b>bodega-pizzeria.shop</b>. Angka dihitung dari kejadian di halaman pesanan,
+      bukan dari cookie iklan. Satu orang yang membuka dua produk tetap terhitung satu di langkah itu.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <form class="filter" id="filter">
+    <div><label for="dari">Dari</label><input type="date" id="dari"></div>
+    <div><label for="sampai">Sampai</label><input type="date" id="sampai"></div>
+    <div class="preset">
+      <button type="button" data-hari="1">Hari ini</button>
+      <button type="button" data-hari="7">7 hari</button>
+      <button type="button" data-hari="30">30 hari</button>
+    </div>
+    <p class="status" id="status">Memuat…</p>
+  </form>
+
+  <section class="kpi" id="kpi" aria-live="polite"></section>
+
+  <section class="blok">
+    <div class="h"><h2>Funnel</h2><span class="rule"></span><span class="hint">dari pengunjung pertama</span></div>
+    <div class="funnel" id="funnel"></div>
+  </section>
+
+  <section class="blok dua">
+    <div>
+      <div class="h"><h2>Dari mana mereka datang</h2><span class="rule"></span></div>
+      <div id="kanal"></div>
+    </div>
+    <div>
+      <div class="h"><h2>Produk paling dilihat</h2><span class="rule"></span></div>
+      <div id="produk"></div>
+    </div>
+  </section>
+
+  <section class="blok">
+    <div class="h"><h2>Per hari</h2><span class="rule"></span></div>
+    <div id="harian"></div>
+  </section>
+
+  <p class="kaki">
+    Sumber data: tab <code>Kejadian</code> di Google Sheet pesanan.
+    Pelacakan hanya aktif kalau <code>track.js</code> memuat dan endpoint Apps Script sudah versi terbaru.
+    Periksa dengan <code>?action=kejadian&amp;batas=5</code> pada URL endpoint.
+  </p>
+</main>
+
+<script>
+/* ============================================================
+   Dasbor trafik — membaca ringkasan dari Apps Script (JSONP,
+   karena script.google.com tidak mengirim header CORS).
+   ENDPOINT & KUNCI harus sama dengan LOG_ENDPOINT / LOG_KEY di app.js.
+   ============================================================ */
+
+const ENDPOINT = "https://script.google.com/macros/s/AKfycbzKz15pob4Y5HNRgFF-rvvQbIk1NkUSH_YDyFnqC66j5417SC6Tw0uL79fIO0JTueME/exec";
+const KUNCI = "a4ab1e3d8541ccf8f2e52cdbefa9820e55e4df695d16ae32";
+
+const LANGKAH = {
+  page_view:      ["Halaman dibuka", "landing"],
+  view_item:      ["Lihat produk", "detail dibuka"],
+  add_to_cart:    ["Masuk keranjang", "tambah item"],
+  begin_checkout: ["Buka pesanan", "tekan Continue"],
+  form_start:     ["Isi data", "kolom pertama terisi"],
+  place_order:    ["Pesan dibuat", "lolos validasi"],
+  confirm_wa:     ["Konfirmasi WA", "tombol di halaman akhir"],
+};
+
+const $ = s => document.querySelector(s);
+const el = (tag, cls, isi) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (isi !== undefined) n.textContent = isi;
+  return n;
+};
+const angka = n => (Number(n) || 0).toLocaleString("id-ID");
+const rupiah = n => "Rp" + (Number(n) || 0).toLocaleString("id-ID");
+
+function tglLokal(d) {
+  const p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function pasangPreset(hari) {
+  const kini = new Date();
+  const mulai = new Date();
+  mulai.setDate(kini.getDate() - (hari - 1));
+  $("#dari").value = tglLokal(mulai);
+  $("#sampai").value = tglLokal(kini);
+  [...document.querySelectorAll(".preset button")].forEach(b =>
+    b.setAttribute("aria-pressed", String(Number(b.dataset.hari) === hari)));
+}
+
+function status(teks) { $("#status").textContent = teks; }
+
+/* ---------- muat ---------- */
+
+let permintaan = 0;
+
+function muat() {
+  const dari = $("#dari").value, sampai = $("#sampai").value;
+  if (!dari || !sampai) return;
+  if (dari > sampai) { status("Tanggal terbalik."); return; }
+
+  const nomor = ++permintaan;
+  status("Memuat…");
+
+  const cb = "bodegaDasbor" + nomor + "_" + Date.now();
+  const bersih = () => {
+    try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+    const s = document.getElementById(cb);
+    if (s) s.remove();
+  };
+  const gagal = pesan => {
+    if (nomor !== permintaan) return;
+    bersih();
+    status(pesan);
+  };
+
+  window[cb] = data => {
+    if (nomor !== permintaan) { bersih(); return; }
+    bersih();
+    if (!data || data.ok !== true) {
+      status("Endpoint menolak: " + ((data && data.error) || "tidak dikenal") + " — periksa kunci.");
+      return;
+    }
+    gambar(data);
+  };
+
+  const s = document.createElement("script");
+  s.id = cb;
+  s.src = `${ENDPOINT}?action=analitik&dari=${dari}&sampai=${sampai}`
+        + `&key=${encodeURIComponent(KUNCI)}&callback=${cb}&_=${Date.now()}`;
+  s.onerror = () => gagal("Tidak bisa menghubungi endpoint. Cek koneksi, atau Apps Script belum di-deploy ulang.");
+  document.head.appendChild(s);
+  setTimeout(() => { if (window[cb]) gagal("Tidak ada balasan dalam 25 detik."); }, 25000);
+}
+
+/* ---------- gambar ---------- */
+
+function gambar(d) {
+  const k = d.kpi || {};
+  status(`${angka(d.baris)} kejadian · ${d.dari} → ${d.sampai}${d.terpotong ? " · hanya 20.000 baris terakhir" : ""}`
+    + (d.pesan ? " · " + d.pesan : ""));
+
+  const kpi = $("#kpi");
+  kpi.innerHTML = "";
+  [
+    ["Pengunjung", angka(k.orang), "orang berbeda"],
+    ["Sesi", angka(k.sesi), "kunjungan"],
+    ["Pesan dibuat", angka(k.pesanan), "lolos validasi"],
+    ["Konfirmasi WA", angka(k.konfirmasi), "tombol ditekan"],
+    ["Omzet tercatat", rupiah(k.omzet), "nilai pesanan"],
+    ["Rata-rata kunjungan", (k.detik || 0) + " dtk", "sampai halaman ditutup"],
+  ].forEach(([lbl, val, note]) => {
+    const box = el("div");
+    box.append(el("div", "lbl", lbl), el("div", "val", val), el("div", "ket", note));
+    kpi.appendChild(box);
+  });
+
+  // ---- funnel ----
+  const f = $("#funnel");
+  f.innerHTML = "";
+  const langkah = new Map((d.langkah || []).map(x => [x.ev, x]));
+  const awal = (langkah.get("page_view") || { sesi: 0 }).sesi || 0;
+  let sebelumnya = null;
+
+  Object.keys(LANGKAH).forEach(ev => {
+    const [nama, ket] = LANGKAH[ev];
+    const n = (langkah.get(ev) || { sesi: 0 }).sesi || 0;
+    const lebar = awal ? Math.max(1.5, Math.round((n / awal) * 100)) : 0;
+
+    const row = el("div", "step" + (ev === "confirm_wa" ? " akhir" : ""));
+    const nm = el("div", "nm", nama);
+    nm.appendChild(el("small", "", ket));
+    const track = el("div", "track");
+    const fill = el("div", "fill");
+    fill.style.width = lebar + "%";
+    track.appendChild(fill);
+    row.append(nm, track, el("div", "num", angka(n)));
+
+    const dari = sebelumnya === null ? awal : sebelumnya;
+    const turun = dari ? Math.round((n / dari) * 100) : 0;
+    const total = awal ? Math.round((n / awal) * 100) : 0;
+    row.appendChild(el("div", "pct",
+      sebelumnya === null
+        ? (awal ? "pangkal funnel · 100%" : "belum ada data")
+        : `${turun}% dari langkah sebelumnya · ${total}% dari semua pengunjung`));
+
+    f.appendChild(row);
+    sebelumnya = n;
+  });
+
+  // ---- kanal ----
+  const kn = $("#kanal");
+  kn.innerHTML = "";
+  if (!(d.kanal || []).length) kn.appendChild(el("p", "kosong", "Belum ada kunjungan pada rentang ini."));
+  else {
+    const t = el("table");
+    t.innerHTML = `<thead><tr><th>Sumber</th><th class="kanan">Sesi</th>
+      <th class="kanan">Pesan</th><th class="kanan">Omzet</th></tr></thead>`;
+    const tb = el("tbody");
+    (d.kanal || []).forEach(r => {
+      const tr = el("tr");
+      tr.innerHTML = `<td></td><td class="kanan">${angka(r.sesi)}</td>
+        <td class="kanan">${angka(r.pesanan)}</td><td class="kanan">${rupiah(r.omzet)}</td>`;
+      tr.firstElementChild.textContent = r.kanal;
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    kn.appendChild(t);
+  }
+
+  // ---- produk ----
+  const pr = $("#produk");
+  pr.innerHTML = "";
+  if (!(d.produk || []).length) pr.appendChild(el("p", "kosong", "Belum ada produk yang dibuka."));
+  else {
+    const t = el("table");
+    t.innerHTML = `<thead><tr><th>Produk</th><th class="kanan">Dilihat</th>
+      <th class="kanan">Ke keranjang</th></tr></thead>`;
+    const tb = el("tbody");
+    (d.produk || []).forEach(r => {
+      const tr = el("tr");
+      tr.innerHTML = `<td></td><td class="kanan">${angka(r.lihat)}</td><td class="kanan">${angka(r.cart)}</td>`;
+      tr.firstElementChild.textContent = r.nama || r.id;
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    pr.appendChild(t);
+  }
+
+  // ---- harian ----
+  const hr = $("#harian");
+  hr.innerHTML = "";
+  if (!(d.harian || []).length) hr.appendChild(el("p", "kosong", "Belum ada data harian."));
+  else {
+    const t = el("table");
+    t.innerHTML = `<thead><tr><th>Tanggal</th><th class="kanan">Sesi</th>
+      <th class="kanan">Pesan</th><th class="kanan">Konfirmasi</th><th class="kanan">Omzet</th></tr></thead>`;
+    const tb = el("tbody");
+    let sSesi = 0, sPesan = 0, sOmzet = 0;
+    (d.harian || []).slice().reverse().forEach(r => {
+      sSesi += r.sesi; sPesan += r.pesanan; sOmzet += r.omzet;
+      const tr = el("tr");
+      tr.innerHTML = `<td>${r.tgl}</td><td class="kanan">${angka(r.sesi)}</td>
+        <td class="kanan">${angka(r.pesanan)}</td><td class="kanan">${angka(r.konfirmasi)}</td>
+        <td class="kanan">${rupiah(r.omzet)}</td>`;
+      tb.appendChild(tr);
+    });
+    const tot = el("tr", "total");
+    tot.innerHTML = `<td>Jumlah</td><td class="kanan">${angka(sSesi)}</td>
+      <td class="kanan">${angka(sPesan)}</td><td class="kanan"></td>
+      <td class="kanan">${rupiah(sOmzet)}</td>`;
+    tb.appendChild(tot);
+    t.appendChild(tb);
+    hr.appendChild(t);
+  }
+}
+
+/* ---------- kontrol ---------- */
+
+document.querySelectorAll(".preset button").forEach(b =>
+  b.addEventListener("click", () => { pasangPreset(Number(b.dataset.hari)); muat(); }));
+
+["#dari", "#sampai"].forEach(sel =>
+  $(sel).addEventListener("change", () => {
+    [...document.querySelectorAll(".preset button")].forEach(b => b.setAttribute("aria-pressed", "false"));
+    muat();
+  }));
+
+$("#filter").addEventListener("submit", e => { e.preventDefault(); muat(); });
+
+pasangPreset(7);
+muat();
+</script>
+</body>
+</html>
