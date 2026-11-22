@@ -1439,7 +1439,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ikon WhatsApp mengambang: nomor & pesan awal dari SHOP.wa
   const fab = $("#wa-fab");
   if (fab) {
-    fab.href = `https://wa.me/${SHOP.wa}?text=${encodeURIComponent("Hi Bodega! I'd like to ask about the menu.")}`;
+    fab.href = `https://wa.me/${SHOP.wa}?text=${encodeURIComponent("Hi Bodega!")}`;
     fab.addEventListener("click", () => {
       lacak("wa_fab", {
         dari: $("#view-menu").classList.contains("hidden") ? "checkout" : "menu",
